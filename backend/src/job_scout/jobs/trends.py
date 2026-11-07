@@ -1,7 +1,8 @@
 from collections import defaultdict
 from collections.abc import Iterable
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -69,5 +70,5 @@ async def get_trends(session: AsyncSession, category_id: UUID, days: int) -> Tre
             .group_by(local_day, Job.seniority, JobEvent.event_type)
         )
     ).all()
-    today = await session.scalar(select(func.date(func.timezone(TIMEZONE, func.now()))))
+    today = datetime.now(UTC).astimezone(ZoneInfo(TIMEZONE)).date()
     return build_trend([tuple(row) for row in rows], today, days)  # type: ignore[arg-type]

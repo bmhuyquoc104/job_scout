@@ -22,7 +22,7 @@ async def test_reconcile_reactivates_seen_jobs_and_inactivates_absent_jobs(
     from datetime import timedelta
 
     factory, category_id = scrape_db
-    scan_started_at = datetime.now(UTC)
+    scan_started_at = datetime(2026, 11, 1, tzinfo=UTC)
     async with factory() as session:
         seen_job = make_job(category_id, "seen-again")
         seen_job.is_active = False

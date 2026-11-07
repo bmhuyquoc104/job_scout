@@ -1,14 +1,19 @@
 # Graph Report - jobs  (2026-11-08)
 
 ## Corpus Check
-- 142 files · ~43,496 words
+- 142 files · ~41,089 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 13 file(s) not represented in the graph (top: (none) 8, .example 1, .ini 1)
 
 ## Summary
-- 1177 nodes · 3182 edges · 66 communities (54 shown, 12 thin omitted)
-- Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 419 edges (avg confidence: 0.92)
+- 1166 nodes · 3167 edges · 61 communities (47 shown, 14 thin omitted)
+- Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 415 edges (avg confidence: 0.91)
 - Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `4fb81c8b`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - test_main.py
@@ -34,10 +39,10 @@
 - AppError
 - Jobs.tsx
 - schema.d.ts
-- exception_handlers.py
+- configure_logging
 - test_job_events.py
 - test_employmenthero.py
-- persistence.py
+- normalization.py
 - jobColumns.tsx
 - Job Scout
 - phases.py
@@ -49,22 +54,17 @@
 - employmenthero.py
 - test_errors.py
 - errors.py
-- job_scout/main.py
+- persistence.py
 - categories/service.py
 - vercel.json
 - glassdoor.py
 - inz_record
-- pendulum
-- configure_logging
+- _TextExtractor
 - indeed.py
 - devDependencies
 - re
 - test_phases.py
 - dependencies
-- job_scout_employmenthero_daily
-- job_scout_daily_sync
-- 2026-11-07_allow_indeed_glassdoor_sources.py
-- test_logging.py
 - scripts
 - eslint.config.js
 - vite.config.ts
@@ -83,29 +83,29 @@
 10. `run()` - 21 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Airflow (daily sync)` --references--> `job_scout_daily_sync()`  [INFERRED]
-  README.md → airflow/dags/job_scout_sync.py
-- `Job sources` --references--> `job_scout_daily_sync()`  [INFERRED]
-  README.md → airflow/dags/job_scout_sync.py
-- `Job sources` --references--> `job_scout_employmenthero_daily()`  [INFERRED]
-  README.md → airflow/dags/employmenthero_sync.py
-- `Green List` --references--> `job_scout_green_list_monthly()`  [INFERRED]
-  README.md → airflow/dags/green_list_sync.py
-- `discover()` --calls--> `configure_logging()`  [INFERRED]
-  airflow/dags/employmenthero_sync.py → backend/src/job_scout/core/logging.py
+- `discover()` --calls--> `discover_phase()`  [INFERRED]
+  airflow/dags/employmenthero_sync.py → backend/src/job_scout/scraper/phases.py
+- `reconcile()` --calls--> `reconcile_phase()`  [INFERRED]
+  airflow/dags/employmenthero_sync.py → backend/src/job_scout/scraper/phases.py
+- `enrich()` --calls--> `enrich_phase()`  [INFERRED]
+  airflow/dags/employmenthero_sync.py → backend/src/job_scout/scraper/phases.py
+- `sync_green_list()` --calls--> `run()`  [INFERRED]
+  airflow/dags/green_list_sync.py → backend/src/job_scout/scraper/runner.py
+- `discover()` --calls--> `discover_phase()`  [INFERRED]
+  airflow/dags/job_board_sync.py → backend/src/job_scout/scraper/phases.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (66 total, 12 thin omitted)
+## Communities (61 total, 14 thin omitted)
 
 ### Community 0 - "test_main.py"
-Cohesion: 0.11
-Nodes (14): _Session, test_command_configures_shared_logging(), test_command_exits_nonzero_when_scrape_fails(), test_discover_phase_prints_scan_timestamp(), test_enrich_phase_returns_failure_when_drafts_remain_failed(), test_full_run_exits_nonzero_when_listings_failed(), run_all(), test_phases_reject_unknown_category() (+6 more)
+Cohesion: 0.10
+Nodes (15): _Session, test_command_configures_shared_logging(), test_command_exits_nonzero_when_scrape_fails(), fail(), test_discover_phase_prints_scan_timestamp(), test_enrich_phase_returns_failure_when_drafts_remain_failed(), test_full_run_exits_nonzero_when_listings_failed(), run_all() (+7 more)
 
 ### Community 1 - "test_immigration_client.py"
-Cohesion: 0.14
-Nodes (12): check_accreditation(), extract_immigration_fields(), is_accredited(), StubPage, test_accreditation_rule_preserves_current_non_no_results_behavior(), test_check_accreditation_raises_after_three_failures(), test_check_accreditation_reloads_the_page_when_a_lookup_fails(), test_check_accreditation_retries_then_returns_result() (+4 more)
+Cohesion: 0.11
+Nodes (13): process_listing(), check_accreditation(), extract_immigration_fields(), is_accredited(), StubPage, test_accreditation_rule_preserves_current_non_no_results_behavior(), test_check_accreditation_raises_after_three_failures(), test_check_accreditation_reloads_the_page_when_a_lookup_fails() (+5 more)
 
 ### Community 2 - "Category"
 Cohesion: 0.09
@@ -113,7 +113,7 @@ Nodes (34): Category, Job, api_context(), test_categories_returns_enabled_catego
 
 ### Community 3 - "sqlalchemy"
 Cohesion: 0.13
-Nodes (7): upgrade(), upgrade(), upgrade(), upgrade(), upgrade(), downgrade(), upgrade()
+Nodes (9): upgrade(), upgrade(), upgrade(), upgrade(), downgrade(), upgrade(), downgrade(), _swap() (+1 more)
 
 ### Community 4 - "test_migrations.py"
 Cohesion: 0.06
@@ -141,18 +141,18 @@ Nodes (16): compilerOptions, allowImportingTsExtensions, isolatedModules, jsx, l
 
 ### Community 11 - "source_listing"
 Cohesion: 0.05
-Nodes (50): JobDraft, run(), make_job(), scrape_one(), source_listing(), test_changed_payload_resets_attempts_and_makes_a_draft_pending_again(), fetch_page(), test_discovery_logs_which_response_check_failed() (+42 more)
+Nodes (49): JobDraft, make_job(), scrape_one(), source_listing(), test_changed_payload_resets_attempts_and_makes_a_draft_pending_again(), fetch_page(), test_discovery_logs_which_response_check_failed(), test_discovery_persists_pending_drafts_without_enrichment() (+41 more)
 
 ### Community 16 - "apply_sync"
 Cohesion: 0.43
 Nodes (11): GreenListRole, apply_sync(), events(), roles(), test_a_removed_role_stays_in_the_table_as_inactive(), test_a_tier_change_is_recorded_with_old_and_new_tier(), test_an_empty_or_collapsed_list_never_removes_anything(), test_new_removed_and_restored_roles_are_recorded() (+3 more)
 
 ### Community 17 - "jobs/models.py"
-Cohesion: 0.18
-Nodes (5): do_run_migrations(), run_async_migrations(), run_migrations_offline(), run_migrations_online(), Base
+Cohesion: 0.16
+Nodes (6): do_run_migrations(), run_async_migrations(), run_migrations_offline(), run_migrations_online(), JobEvent, Base
 
 ### Community 18 - "green_list/service.py"
-Cohesion: 0.18
+Cohesion: 0.17
 Nodes (10): GreenListEvent, GreenListEventType, get_green_list(), get_green_list_changes(), GreenListChange, GreenListChangesResponse, GreenListResponse, GreenListRoleItem (+2 more)
 
 ### Community 19 - "TrendsPanel.tsx"
@@ -176,8 +176,8 @@ Cohesion: 0.12
 Nodes (23): ApiError, CategoryItem, get(), getGreenList(), getGreenListChanges(), GreenListChange, GreenListChangesResponse, GreenListResponse (+15 more)
 
 ### Community 24 - "AppError"
-Cohesion: 0.11
-Nodes (12): AppError, ErrorCode, ErrorDefinition, fetch_search_page(), parse_search_page(), SearchPage, app_error_probe(), test_app_error_exposes_catalog_message_and_keeps_detail_for_logs() (+4 more)
+Cohesion: 0.13
+Nodes (11): AppError, ErrorCode, ErrorDefinition, fetch_search_page(), parse_search_page(), SearchPage, app_error_probe(), test_app_error_exposes_catalog_message_and_keeps_detail_for_logs() (+3 more)
 
 ### Community 26 - "Jobs.tsx"
 Cohesion: 0.15
@@ -187,9 +187,9 @@ Nodes (23): getCategoryJobs(), getJobFacets(), JobFacets, JobSource, JobStatus, 
 Cohesion: 0.33
 Nodes (5): components, $defs, operations, paths, webhooks
 
-### Community 29 - "exception_handlers.py"
-Cohesion: 0.26
-Nodes (6): app_error_handler(), error_response(), http_error_handler(), register_exception_handlers(), unexpected_error_handler(), validation_error_handler()
+### Community 29 - "configure_logging"
+Cohesion: 0.05
+Nodes (37): job_scout_employmenthero_daily(), discover(), enabled_categories(), enrich(), reconcile(), sync(), job_scout_green_list_monthly(), sync_green_list() (+29 more)
 
 ### Community 30 - "test_job_events.py"
 Cohesion: 0.49
@@ -199,21 +199,17 @@ Nodes (10): enriched(), events_for(), promote(), test_changed_fields_are_recorde
 Cohesion: 0.16
 Nodes (16): eh_site(), fetch_job(), job_page(), list_page(), test_a_seek_draft_with_the_same_id_does_not_count_as_seen_for_employment_hero(), test_build_description_turns_html_into_readable_text(), test_discovery_fails_closed_when_a_job_page_cannot_be_read(), test_discovery_fails_closed_when_the_first_page_has_no_jobs() (+8 more)
 
-### Community 32 - "persistence.py"
-Cohesion: 0.15
-Nodes (6): upgrade(), JobEvent, JobEventType, classify_seniority(), parse_salary(), region_of()
+### Community 32 - "normalization.py"
+Cohesion: 0.19
+Nodes (3): upgrade(), classify_seniority(), region_of()
 
 ### Community 33 - "jobColumns.tsx"
 Cohesion: 0.22
 Nodes (12): getJob(), JobListItem, sourceLabel(), column(), Header(), jobColumns, PositionCell(), StatusChip() (+4 more)
 
-### Community 34 - "Job Scout"
-Cohesion: 0.14
-Nodes (13): Categories, Configuration, Development checks, Job Scout, Local development without Docker for the app, Project layout, Quick start (Docker), Requirements (+5 more)
-
 ### Community 35 - "phases.py"
-Cohesion: 0.14
-Nodes (13): main(), enrich(), process_listing(), main(), run_once(), build_description(), normalize_text(), _category_id() (+5 more)
+Cohesion: 0.21
+Nodes (10): enrich(), main(), run_once(), _category_id(), discover_phase(), enrich_phase(), reconcile_phase(), run_all_phases() (+2 more)
 
 ### Community 36 - "green_db"
 Cohesion: 0.36
@@ -224,12 +220,12 @@ Cohesion: 0.12
 Nodes (8): fake_pages(), pages_gen(), no_real_clients(), _NoClient, test_discovery_fails_closed_when_a_page_cannot_be_read(), test_discovery_fails_closed_when_the_first_page_has_no_jobs(), test_discovery_saves_drafts_for_every_listed_job(), test_indeed_parse_search_without_job_search_is_a_source_error()
 
 ### Community 40 - "parse_record"
-Cohesion: 0.14
-Nodes (11): html_to_text(), parse_record(), _raw(), _TextExtractor, inz_record(), test_a_record_without_a_tier_is_rejected_instead_of_guessed(), test_a_record_without_an_id_is_rejected(), test_html_to_text_keeps_lists_and_drops_markup_and_scripts() (+3 more)
+Cohesion: 0.24
+Nodes (9): html_to_text(), parse_record(), inz_record(), test_a_record_without_a_tier_is_rejected_instead_of_guessed(), test_a_record_without_an_id_is_rejected(), test_html_to_text_keeps_lists_and_drops_markup_and_scripts(), test_parse_record_reads_the_role_fields(), test_parse_record_reads_tier_two_and_a_real_note() (+1 more)
 
 ### Community 41 - "discovery.py"
-Cohesion: 0.16
-Nodes (12): discover(), discover_employmenthero(), discover_job_board(), discoverer(), DiscoverySummary, reconcile_active_jobs(), draft_key(), get_enabled_category() (+4 more)
+Cohesion: 0.21
+Nodes (10): discover(), discover_employmenthero(), discover_job_board(), discoverer(), DiscoverySummary, reconcile_active_jobs(), normalize_text(), get_enabled_category() (+2 more)
 
 ### Community 42 - "test_api.py"
 Cohesion: 0.47
@@ -237,50 +233,42 @@ Nodes (6): roles(), test_a_role_that_changed_tier_says_so_and_a_removed_one_is_h
 
 ### Community 43 - "employmenthero.py"
 Cohesion: 0.21
-Nodes (11): build_description(), client(), fetch_job_page(), fetch_list_page(), _get(), job_url(), normalize_listing(), parse_job_posting() (+3 more)
+Nodes (10): build_description(), client(), fetch_job_page(), fetch_list_page(), _get(), job_url(), normalize_listing(), parse_job_posting() (+2 more)
 
 ### Community 44 - "test_errors.py"
 Cohesion: 0.43
 Nodes (4): test_application_error_uses_catalog_status_and_message(), test_http_not_found_uses_central_error_response(), test_request_validation_uses_central_error_response(), test_unexpected_error_is_logged_and_redacted()
 
 ### Community 45 - "errors.py"
-Cohesion: 0.16
-Nodes (8): fetch_green_list(), _Meta, _Page, _Response, RoleRecord, _content(), sync_green_list(), SyncSummary
+Cohesion: 0.15
+Nodes (9): fetch_green_list(), _Meta, _Page, _Response, main(), RoleRecord, _content(), sync_green_list() (+1 more)
 
-### Community 46 - "job_scout/main.py"
+### Community 46 - "persistence.py"
 Cohesion: 0.24
-Nodes (4): health(), lifespan(), print_openapi(), run_dev_server()
+Nodes (6): upgrade(), JobEventType, parse_salary(), draft_key(), _json_value(), _promotion_events()
 
 ### Community 47 - "categories/service.py"
 Cohesion: 0.23
 Nodes (4): get_categories(), CategoryItem, list_categories(), get_session()
 
 ### Community 49 - "glassdoor.py"
-Cohesion: 0.14
-Nodes (13): client(), request(), build_description(), client(), _descriptions(), _graph(), normalize_listing(), pages() (+5 more)
+Cohesion: 0.16
+Nodes (10): client(), request(), build_description(), client(), _descriptions(), _graph(), normalize_listing(), pages() (+2 more)
 
 ### Community 50 - "inz_record"
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (8): fetch(), response(), test_a_non_json_answer_is_refused(), test_an_incomplete_or_odd_response_is_refused(), test_fetch_sends_the_green_list_query_and_parses_every_role(), handler(), test_transient_server_errors_are_retried_then_given_up(), flaky()
 
-### Community 51 - "pendulum"
-Cohesion: 0.23
-Nodes (4): job_scout_green_list_monthly(), sync_green_list(), job_board_dag(), Green List
-
-### Community 52 - "configure_logging"
-Cohesion: 0.29
-Nodes (10): enabled_categories(), job_board_daily(), discover(), enabled_categories(), enrich(), reconcile(), sync(), enabled_categories() (+2 more)
-
 ### Community 53 - "indeed.py"
-Cohesion: 0.29
-Nodes (6): build_query(), client(), normalize_listing(), pages(), parse_search(), _salary_label()
+Cohesion: 0.17
+Nodes (11): build_description(), build_query(), client(), normalize_listing(), pages(), parse_search(), _salary_label(), build_description() (+3 more)
 
 ### Community 54 - "devDependencies"
 Cohesion: 0.17
 Nodes (12): devDependencies, eslint, @eslint/js, eslint-plugin-react-hooks, globals, openapi-typescript, @types/react, @types/react-dom (+4 more)
 
 ### Community 55 - "re"
-Cohesion: 0.25
+Cohesion: 0.21
 Nodes (6): downgrade(), slugify(), upgrade(), test_database_check_allows_exactly_the_declared_sources(), test_every_declared_source_can_be_scraped_and_enriched(), test_unknown_source_is_rejected_instead_of_silently_scraped()
 
 ### Community 56 - "test_phases.py"
@@ -290,22 +278,6 @@ Nodes (4): test_database(), test_employment_hero_covers_only_categories_with_a_s
 ### Community 57 - "dependencies"
 Cohesion: 0.25
 Nodes (8): dependencies, @emotion/react, @emotion/styled, @mui/material, @mui/x-data-grid, react, react-dom, react-router-dom
-
-### Community 58 - "job_scout_employmenthero_daily"
-Cohesion: 0.43
-Nodes (6): job_scout_employmenthero_daily(), discover(), enrich(), reconcile(), sync(), Job sources
-
-### Community 59 - "job_scout_daily_sync"
-Cohesion: 0.43
-Nodes (6): job_scout_daily_sync(), discover(), enrich(), reconcile(), sync(), Airflow (daily sync)
-
-### Community 60 - "2026-11-07_allow_indeed_glassdoor_sources.py"
-Cohesion: 0.83
-Nodes (3): downgrade(), _swap(), upgrade()
-
-### Community 61 - "test_logging.py"
-Cohesion: 0.67
-Nodes (4): _capture_basic_config(), test_api_startup_configures_logging(), test_configure_logging_accepts_a_level_override(), test_configure_logging_uses_shared_format_and_default_info_level()
 
 ### Community 62 - "scripts"
 Cohesion: 0.33
@@ -317,23 +289,23 @@ Nodes (4): @eslint/js, eslint-plugin-react-hooks, globals, typescript-eslint
 
 ## Knowledge Gaps
 - **8 isolated node(s):** `job-scout`, `@emotion/react`, `@emotion/styled`, `@types/react`, `@types/react-dom` (+3 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 367 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **12 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 360 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **14 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `AppError` connect `AppError` to `test_main.py`, `test_immigration_client.py`, `Category`, `test_seek_client.py`, `source_listing`, `apply_sync`, `exception_handlers.py`, `test_employmenthero.py`, `phases.py`, `test_job_boards.py`, `parse_record`, `discovery.py`, `employmenthero.py`, `errors.py`, `categories/service.py`, `glassdoor.py`, `inz_record`, `configure_logging`, `indeed.py`, `test_phases.py`?**
-  _High betweenness centrality (0.091) - this node is a cross-community bridge._
+- **Why does `AppError` connect `AppError` to `test_main.py`, `test_immigration_client.py`, `Category`, `test_seek_client.py`, `source_listing`, `apply_sync`, `configure_logging`, `test_employmenthero.py`, `phases.py`, `test_job_boards.py`, `parse_record`, `discovery.py`, `employmenthero.py`, `errors.py`, `categories/service.py`, `glassdoor.py`, `inz_record`, `indeed.py`, `test_phases.py`?**
+  _High betweenness centrality (0.097) - this node is a cross-community bridge._
 - **Are the 40 inferred relationships involving `AppError` (e.g. with `app_error_handler()` and `register_exception_handlers()`) actually correct?**
   _`AppError` has 40 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `job-scout`, `@emotion/react`, `@emotion/styled` to the rest of the system?**
   _8 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `test_main.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.10837438423645321 - nodes in this community are weakly interconnected._
-- **Why does `ErrorCode` connect `AppError` to `test_main.py`, `test_immigration_client.py`, `Category`, `test_seek_client.py`, `source_listing`, `apply_sync`, `exception_handlers.py`, `test_employmenthero.py`, `persistence.py`, `phases.py`, `parse_record`, `discovery.py`, `employmenthero.py`, `errors.py`, `categories/service.py`, `glassdoor.py`, `inz_record`, `configure_logging`, `indeed.py`, `test_phases.py`?**
+  _Cohesion score 0.10344827586206896 - nodes in this community are weakly interconnected._
+- **Why does `ErrorCode` connect `AppError` to `test_main.py`, `test_immigration_client.py`, `Category`, `test_seek_client.py`, `source_listing`, `apply_sync`, `configure_logging`, `test_employmenthero.py`, `phases.py`, `parse_record`, `discovery.py`, `employmenthero.py`, `errors.py`, `persistence.py`, `categories/service.py`, `glassdoor.py`, `inz_record`, `indeed.py`, `test_phases.py`?**
   _High betweenness centrality (0.059) - this node is a cross-community bridge._
 - **Are the 53 inferred relationships involving `ErrorCode` (e.g. with `require_enabled_category()` and `error_response()`) actually correct?**
   _`ErrorCode` has 53 INFERRED edges - model-reasoned connections that need verification._
 - **Should `test_immigration_client.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.13852813852813853 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.1111111111111111 - nodes in this community are weakly interconnected._

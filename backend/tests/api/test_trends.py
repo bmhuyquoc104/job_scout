@@ -1,6 +1,7 @@
 from datetime import date
 
 import pytest
+from freezegun import freeze_time
 from httpx import AsyncClient
 
 from job_scout.categories.models import Category
@@ -52,6 +53,8 @@ def test_no_events_means_an_empty_trend() -> None:
     assert trend.points == [] and trend.history_starts is None
 
 
+# real_asyncio keeps the event loop on the real clock; only the app's "today" is frozen.
+@freeze_time("2026-11-08 00:00:00", real_asyncio=True)
 async def test_trend_endpoint_rebuilds_the_fixture_history(
     api_context: tuple[AsyncClient, Category, list[Job]],
 ) -> None:

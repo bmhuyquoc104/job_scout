@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -120,10 +120,11 @@ async def test_reconcile_records_closed_once_and_reopened_for_returning_jobs(
                 category_id=category_id,
                 external_id=external_id,
                 raw_payload=source_listing(external_id),
+                last_seen_at=datetime(2026, 11, 1, 0, 0, 1, tzinfo=UTC),
             )
             for external_id in ("ev-returned", "ev-still")
         )
-    scan_started_at = datetime.now(UTC) - timedelta(minutes=1)
+    scan_started_at = datetime(2026, 11, 1, tzinfo=UTC)
 
     await discovery.reconcile_active_jobs(factory, category_id, scan_started_at)
     await discovery.reconcile_active_jobs(factory, category_id, scan_started_at)

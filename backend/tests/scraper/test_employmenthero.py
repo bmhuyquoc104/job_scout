@@ -198,7 +198,7 @@ async def test_reconcile_only_closes_jobs_from_its_own_source(
 
     # A scan of one source that sees nothing must not touch the other source's jobs.
     await discovery.reconcile_active_jobs(
-        factory, category_id, datetime.now(UTC), source="employmenthero"
+        factory, category_id, datetime(2026, 11, 1, tzinfo=UTC), source="employmenthero"
     )
 
     async with factory() as session:

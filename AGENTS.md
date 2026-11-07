@@ -27,7 +27,7 @@
 
 - Write a focused test first for each behavior change, run it to confirm the expected failure, then implement and rerun it.
 - Use pytest for backend behavior and the project's async HTTPX `ASGITransport` fixture for API tests.
-- Run `uv run ruff check src tests migrations ../frontend/e2e --config pyproject.toml` and `uv run ruff format --check src tests migrations ../frontend/e2e --config pyproject.toml` from `backend/`.
+- Run `uv run ruff check src tests migrations --config pyproject.toml` and `uv run ruff format --check src tests migrations --config pyproject.toml` from `backend/`.
 - Run `uv run pytest` from `backend/`; tests start an isolated PostgreSQL 18 Testcontainer and apply Alembic migrations automatically. Docker must be running. Frontend changes must pass `pnpm lint` and `pnpm build` from `frontend/`.
 - Never commit unless explicitly requested. Keep `.env`, local databases, `node_modules`, build output, and agent workspaces out of source control.
 
