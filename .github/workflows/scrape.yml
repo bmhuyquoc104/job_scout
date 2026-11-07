@@ -9,7 +9,6 @@ on:
 env:
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
   INDEED_API_KEY: ${{ secrets.INDEED_API_KEY }}
-  GLASSDOOR_CSRF_TOKEN: ${{ secrets.GLASSDOOR_CSRF_TOKEN }}
 
 jobs:
   scrape:
@@ -20,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false # one failing source must not cancel the others
       matrix:
-        source: [seek, employmenthero, indeed, glassdoor]
+        source: [seek, employmenthero, indeed]
     defaults:
       run:
         working-directory: backend
@@ -34,8 +33,9 @@ jobs:
           SOURCE: ${{ matrix.source }}
         run: |
           case "$SOURCE" in
-            # Indeed and Glassdoor search "IT" and save under one category.
-            indeed|glassdoor) cats=ict ;;
+            # Indeed searches "IT" and saves under one category. Glassdoor blocks GitHub's IPs, so it
+            # runs locally through Airflow only.
+            indeed) cats=ict ;;
             *) cats=$(uv run python -c "import asyncio; from job_scout.scraper.phases import enabled_category_slugs as e; print(*asyncio.run(e(None, '$SOURCE')))") ;;
           esac
           fail=0
