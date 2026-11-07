@@ -14,8 +14,13 @@ env:
 jobs:
   scrape:
     if: github.event.schedule != '0 14 1 * *'
+    name: scrape (${{ matrix.source }})
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    strategy:
+      fail-fast: false # one failing source must not cancel the others
+      matrix:
+        source: [seek, employmenthero, indeed, glassdoor]
     defaults:
       run:
         working-directory: backend
@@ -24,18 +29,18 @@ jobs:
       - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked --no-dev
       - run: uv run playwright install --with-deps chromium
-      - name: Scrape SEEK and Employment Hero per category, then Indeed and Glassdoor
+      - name: Scrape ${{ matrix.source }}
+        env:
+          SOURCE: ${{ matrix.source }}
         run: |
+          case "$SOURCE" in
+            # Indeed and Glassdoor search "IT" and save under one category.
+            indeed|glassdoor) cats=ict ;;
+            *) cats=$(uv run python -c "import asyncio; from job_scout.scraper.phases import enabled_category_slugs as e; print(*asyncio.run(e(None, '$SOURCE')))") ;;
+          esac
           fail=0
-          for src in seek employmenthero; do
-            cats=$(uv run python -c "import asyncio; from job_scout.scraper.phases import enabled_category_slugs as e; print(*asyncio.run(e(None, '$src')))")
-            for cat in $cats; do
-              uv run job_scout_scrape --category "$cat" --source "$src" || fail=1
-            done
-          done
-          # Indeed and Glassdoor search "IT" and save under one category.
-          for src in indeed glassdoor; do
-            uv run job_scout_scrape --category ict --source "$src" || fail=1
+          for cat in $cats; do
+            uv run job_scout_scrape --category "$cat" --source "$SOURCE" || fail=1
           done
           exit $fail
 
