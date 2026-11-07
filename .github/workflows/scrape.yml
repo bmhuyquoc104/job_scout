@@ -19,7 +19,7 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked --no-dev
       - run: uv run playwright install --with-deps chromium
       - name: Scrape every enabled category, per source
@@ -42,6 +42,6 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked --no-dev
       - run: uv run python -m job_scout.green_list

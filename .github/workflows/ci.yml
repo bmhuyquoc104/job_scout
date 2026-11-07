@@ -16,7 +16,7 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked
       - run: uv run ruff check src tests migrations ../frontend/e2e --config pyproject.toml
       - run: uv run ruff format --check src tests migrations ../frontend/e2e --config pyproject.toml
@@ -32,7 +32,7 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked
       - uses: pnpm/action-setup@v4
         with:
