@@ -1,0 +1,47 @@
+name: scrape
+
+on:
+  schedule:
+    - cron: "0 13 * * *" # daily ~02:00 NZ (UTC+13 summer; 03:00 in winter)
+    - cron: "0 14 1 * *" # green list, 1st of month
+  workflow_dispatch:
+
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+jobs:
+  scrape:
+    if: github.event.schedule != '0 14 1 * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked --no-dev
+      - run: uv run playwright install --with-deps chromium
+      - name: Scrape every enabled category, per source
+        run: |
+          fail=0
+          for src in seek employmenthero; do
+            cats=$(uv run python -c "import asyncio; from job_scout.scraper.phases import enabled_category_slugs as e; print(*asyncio.run(e(None, '$src')))")
+            for cat in $cats; do
+              uv run job_scout_scrape --category "$cat" --source "$src" || fail=1
+            done
+          done
+          exit $fail
+
+  green-list:
+    if: github.event.schedule == '0 14 1 * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked --no-dev
+      - run: uv run python -m job_scout.green_list

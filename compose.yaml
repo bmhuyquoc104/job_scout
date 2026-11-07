@@ -1,0 +1,184 @@
+x-database-env: &database-env
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-job_scout}:${POSTGRES_PASSWORD:-local_dev_only}@postgres:5432/${POSTGRES_DB:-job_scout}
+
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: airflow/Dockerfile
+  image: job-scout-airflow:3.3.2
+  environment: &airflow-common-environment
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-}
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_METADATA_DB_PASSWORD:-airflow_local_only}@airflow-db:5432/airflow
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET:-local_airflow_jwt_secret}
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    AIRFLOW__API__WORKERS: "1" # default is 4; keeps local memory use down
+    INDEED_API_KEY: ${INDEED_API_KEY:-}
+    GLASSDOOR_CSRF_TOKEN: ${GLASSDOOR_CSRF_TOKEN:-}
+    <<: *database-env
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags:ro
+    - ./backend/src:/opt/job-scout/src:ro
+    - airflow_logs:/opt/airflow/logs
+  user: "50000:0"
+  depends_on: &airflow-common-dependencies
+    airflow-db:
+      condition: service_healthy
+
+x-backend-common: &backend-common
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  image: job-scout-backend
+  environment:
+    <<: *database-env
+    # Docker Desktop bind mounts on macOS often drop file events, so --reload never fires.
+    WATCHFILES_FORCE_POLLING: "true"
+  volumes:
+    - ./backend/src:/app/src
+    - ./backend/migrations:/app/migrations
+
+services:
+  migrate:
+    <<: *backend-common
+    command: alembic upgrade head
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    <<: *backend-common
+    command: uvicorn job_scout.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir src
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  frontend:
+    build: ./frontend
+    image: job-scout-frontend
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+      VITE_USE_POLLING: "true"
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5173/"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-job_scout}
+      POSTGRES_USER: ${POSTGRES_USER:-job_scout}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_only}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  airflow-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: airflow
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: ${AIRFLOW_METADATA_DB_PASSWORD:-airflow_local_only}
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  airflow-init:
+    <<: *airflow-common
+    command: version
+    environment:
+      <<: *airflow-common-environment
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-local_dev_only}
+    user: "0:0"
+    restart: "no"
+
+  airflow-apiserver:
+    <<: *airflow-common
+    command: api-server
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      <<: *airflow-common-dependencies
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname \"$${HOSTNAME}\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      <<: *airflow-common-dependencies
+      migrate:
+        condition: service_completed_successfully
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    depends_on:
+      <<: *airflow-common-dependencies
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-triggerer:
+    <<: *airflow-common
+    command: triggerer
+    depends_on:
+      <<: *airflow-common-dependencies
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  frontend_node_modules:
+  postgres_data:
+  airflow_db_data:
+  airflow_logs:

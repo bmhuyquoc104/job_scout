@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: job-scout-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    # Migrations run on every boot (free plan has no pre-deploy command).
+    dockerCommand: sh -c "alembic upgrade head && uvicorn job_scout.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false # paste the Neon asyncpg URL in the Render dashboard
