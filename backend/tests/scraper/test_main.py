@@ -160,3 +160,21 @@ async def test_the_source_option_reaches_the_phase(monkeypatch: pytest.MonkeyPat
 
     assert await scraper_main.run_once("ict", "all", source="employmenthero") == 0
     assert seen == [("ict", "employmenthero")]
+
+
+@pytest.mark.parametrize("source", ["indeed", "glassdoor"])
+def test_command_accepts_the_job_board_sources(
+    monkeypatch: pytest.MonkeyPatch, source: str
+) -> None:
+    seen: list[str] = []
+
+    async def complete(_category: str, _phase: str, _scan: str | None, found: str) -> int:
+        seen.append(found)
+        return 0
+
+    monkeypatch.setattr(sys, "argv", ["job_scout_scrape", "--category", "ict", "--source", source])
+    monkeypatch.setattr(scraper_main, "run_once", complete)
+    with pytest.raises(SystemExit) as error:
+        scraper_main.main()
+
+    assert error.value.code == 0 and seen == [source]

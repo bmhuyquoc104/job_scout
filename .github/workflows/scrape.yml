@@ -8,6 +8,8 @@ on:
 
 env:
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  INDEED_API_KEY: ${{ secrets.INDEED_API_KEY }}
+  GLASSDOOR_CSRF_TOKEN: ${{ secrets.GLASSDOOR_CSRF_TOKEN }}
 
 jobs:
   scrape:
@@ -22,7 +24,7 @@ jobs:
       - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked --no-dev
       - run: uv run playwright install --with-deps chromium
-      - name: Scrape every enabled category, per source
+      - name: Scrape SEEK and Employment Hero per category, then Indeed and Glassdoor
         run: |
           fail=0
           for src in seek employmenthero; do
@@ -30,6 +32,10 @@ jobs:
             for cat in $cats; do
               uv run job_scout_scrape --category "$cat" --source "$src" || fail=1
             done
+          done
+          # Indeed and Glassdoor search "IT" and save under one category.
+          for src in indeed glassdoor; do
+            uv run job_scout_scrape --category ict --source "$src" || fail=1
           done
           exit $fail
 

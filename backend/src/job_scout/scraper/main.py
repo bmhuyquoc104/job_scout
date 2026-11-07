@@ -4,6 +4,7 @@ import logging
 
 from job_scout.core.errors import AppError, ErrorCode
 from job_scout.core.logging import configure_logging
+from job_scout.jobs.sources import JOB_SOURCES
 from job_scout.scraper.phases import discover_phase, enrich_phase, reconcile_phase, run_all_phases
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ async def run_once(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Scrape jobs for one category")
     parser.add_argument("--category", required=True, help="enabled category slug, e.g. ict")
-    parser.add_argument("--source", choices=("seek", "employmenthero"), default="seek")
+    parser.add_argument("--source", choices=tuple(JOB_SOURCES), default="seek")
     parser.add_argument(
         "--phase", choices=("all", "discover", "reconcile", "enrich"), default="all"
     )
