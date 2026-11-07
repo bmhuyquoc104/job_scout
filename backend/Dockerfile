@@ -13,3 +13,5 @@ RUN uv sync --locked --no-dev
 # Non-root at runtime; the venv and code stay root-owned and world-readable.
 RUN useradd --system --create-home app
 USER app
+# Default for hosting (Render sets PORT); docker compose overrides this with its own commands.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn job_scout.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
