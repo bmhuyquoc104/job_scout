@@ -10,3 +10,6 @@ COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --locked --no-dev --no-install-project
 COPY backend/ ./
 RUN uv sync --locked --no-dev
+# Non-root at runtime; the venv and code stay root-owned and world-readable.
+RUN useradd --system --create-home app
+USER app

@@ -75,7 +75,6 @@ jobs:
           scan-type: fs
           scanners: vuln,secret,misconfig
           severity: HIGH,CRITICAL
-          ignore-unfixed: true
           exit-code: "1"
 
   gitleaks:
