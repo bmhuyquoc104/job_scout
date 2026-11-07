@@ -15,6 +15,10 @@ from job_scout.jobs.models import Job, JobEvent, JobEventType
 from job_scout.scraper.models import JobDraft
 from job_scout.scraper.normalization import NormalizedListing, classify_seniority, parse_salary
 
+# SEEK adds per-request noise (tracking token, A/B tags, "3d ago" text). Left in, it makes every
+# re-seen listing look changed and sends it back through enrichment on every run.
+NOISY_PAYLOAD_KEYS = frozenset({"tracking", "solMetadata", "listingDateDisplay"})
+
 
 def draft_key(payload: dict[str, Any]) -> str:
     source_id = payload.get("id")
@@ -40,7 +44,7 @@ async def save_drafts(
                 "category_id": category_id,
                 "source": source,
                 "external_id": external_id,
-                "raw_payload": payload,
+                "raw_payload": {k: v for k, v in payload.items() if k not in NOISY_PAYLOAD_KEYS},
             }
             for external_id, payload in rows
         ]
