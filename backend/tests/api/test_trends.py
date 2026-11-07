@@ -2,10 +2,10 @@ from datetime import date
 
 import pytest
 from httpx import AsyncClient
-from job_scout.jobs.trends import build_trend
 
 from job_scout.categories.models import Category
 from job_scout.jobs.models import Job
+from job_scout.jobs.trends import build_trend
 
 D = date
 
