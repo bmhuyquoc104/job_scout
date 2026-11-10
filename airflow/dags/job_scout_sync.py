@@ -11,10 +11,10 @@ ONE_AT_A_TIME = {**EXTERNAL, "max_active_tis_per_dagrun": 1}
 
 
 @dag(
-    dag_id="job_scout_daily_sync",
+    dag_id="job_scout_seek_daily",
     description="For each enabled category: discover SEEK listings, reconcile active jobs, enrich changed drafts.",
-    schedule="0 2 * * *",
-    start_date=pendulum.datetime(2026, 10, 18, tz="Pacific/Auckland"),
+    schedule="0 6 * * *",
+    start_date=pendulum.datetime(2026, 10, 18, tz="Asia/Ho_Chi_Minh"),
     catchup=False,
     max_active_runs=1,
     default_args={"retries": 2, "retry_delay": timedelta(minutes=5)},
@@ -22,7 +22,7 @@ ONE_AT_A_TIME = {**EXTERNAL, "max_active_tis_per_dagrun": 1}
     params={"category": Param("all", type="string", pattern="^[a-z0-9-]+$")},
     tags=["job-scout"],
 )
-def job_scout_daily_sync():
+def job_scout_seek_daily():
     @task.external_python(**EXTERNAL)
     def enabled_categories(category: str) -> list[str]:
         import asyncio
@@ -74,4 +74,4 @@ def job_scout_daily_sync():
     sync.expand(category=enabled_categories("{{ params.category }}"))
 
 
-job_scout_daily_sync()
+job_scout_seek_daily()

@@ -13,8 +13,8 @@ ONE_AT_A_TIME = {**EXTERNAL, "max_active_tis_per_dagrun": 1}
 @dag(
     dag_id="job_scout_employmenthero_daily",
     description="Employment Hero: read each category's job pages, reconcile, check accredited employers.",
-    schedule="0 4 * * *",  # after the SEEK run (02:00), Pacific/Auckland
-    start_date=pendulum.datetime(2026, 11, 7, tz="Pacific/Auckland"),
+    schedule="0 7 * * *",  # after the SEEK run (06:00), Asia/Ho_Chi_Minh
+    start_date=pendulum.datetime(2026, 11, 7, tz="Asia/Ho_Chi_Minh"),
     catchup=False,
     max_active_runs=1,
     default_args={"retries": 2, "retry_delay": timedelta(minutes=5)},

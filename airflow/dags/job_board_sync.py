@@ -16,8 +16,8 @@ def job_board_dag(source: str, title: str, schedule: str):
     @dag(
         dag_id=f"job_scout_{source}_daily",
         description=f"{title}: read the IT search, reconcile, check accredited employers.",
-        schedule=schedule,  # Pacific/Auckland, after the SEEK (02:00) and Employment Hero (04:00) runs
-        start_date=pendulum.datetime(2026, 11, 7, tz="Pacific/Auckland"),
+        schedule=schedule,  # Asia/Ho_Chi_Minh, after the SEEK (06:00) and Employment Hero (07:00) runs
+        start_date=pendulum.datetime(2026, 11, 7, tz="Asia/Ho_Chi_Minh"),
         catchup=False,
         max_active_runs=1,
         default_args={"retries": 2, "retry_delay": timedelta(minutes=5)},
@@ -79,5 +79,5 @@ def job_board_dag(source: str, title: str, schedule: str):
     return job_board_daily()
 
 
-indeed_daily = job_board_dag("indeed", "Indeed NZ", "0 5 * * *")
-glassdoor_daily = job_board_dag("glassdoor", "Glassdoor NZ", "0 6 * * *")
+indeed_daily = job_board_dag("indeed", "Indeed NZ", "0 8 * * *")
+glassdoor_daily = job_board_dag("glassdoor", "Glassdoor NZ", "0 9 * * *")
