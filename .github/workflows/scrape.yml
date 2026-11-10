@@ -2,7 +2,7 @@ name: scrape
 
 on:
   schedule:
-    - cron: "0 13 * * *" # daily ~02:00 NZ (UTC+13 summer; 03:00 in winter)
+    - cron: "0 23 * * *" # daily 06:00 Saigon (UTC+7)
     - cron: "0 14 1 * *" # green list, 1st of month
   workflow_dispatch:
 
