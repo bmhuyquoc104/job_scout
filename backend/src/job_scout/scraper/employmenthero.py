@@ -56,8 +56,17 @@ async def fetch_list_page(http: httpx.AsyncClient, sector_id: int, page: int) ->
     return await _get(http, f"{BASE_URL}/nz/jobs/", params)
 
 
-async def fetch_job_page(http: httpx.AsyncClient, slug: str) -> str:
-    return await _get(http, job_url(slug))
+async def fetch_job_page(http: httpx.AsyncClient, slug: str) -> str | None:
+    """The job page, or None if it 404s (taken down since it was listed)."""
+    try:
+        return await _get(http, job_url(slug))
+    except AppError as exc:
+        if (
+            isinstance(exc.__cause__, httpx.HTTPStatusError)
+            and exc.__cause__.response.status_code == 404
+        ):
+            return None
+        raise
 
 
 def job_url(slug: str) -> str:

@@ -149,6 +149,24 @@ async def test_discovery_fails_closed_when_a_job_page_cannot_be_read(
         await discovery.discover_employmenthero(factory, category_id)
 
 
+async def test_discovery_skips_a_job_that_was_taken_down_after_listing(
+    scrape_db: tuple[async_sessionmaker[AsyncSession], UUID],
+    eh_site: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    factory, category_id = scrape_db
+    eh_site.update(page1=list_page("job-a", "job-gone"), **{"job-a": job_page()})
+
+    async def fetch_job(_: httpx.AsyncClient, slug: str) -> str | None:
+        return eh_site.get(slug)  # None = the page 404s
+
+    monkeypatch.setattr(employmenthero, "fetch_job_page", fetch_job)
+
+    summary = await discovery.discover_employmenthero(factory, category_id)
+
+    assert summary.fetched == 1
+
+
 async def test_discovery_fails_closed_when_the_first_page_has_no_jobs(
     scrape_db: tuple[async_sessionmaker[AsyncSession], UUID], eh_site: dict[str, str]
 ) -> None:

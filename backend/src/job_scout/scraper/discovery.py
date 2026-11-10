@@ -140,9 +140,11 @@ async def discover_employmenthero(
                 rows: list[tuple[str, dict[str, Any]]] = []
                 for slug in slugs:
                     await asyncio.sleep(EMPLOYMENTHERO_DELAY)
-                    payload = employmenthero.parse_job_posting(
-                        await employmenthero.fetch_job_page(http, slug), slug
-                    )
+                    job_html = await employmenthero.fetch_job_page(http, slug)
+                    if job_html is None:
+                        logger.info("Employment Hero job %s is gone; skipping", slug)
+                        continue
+                    payload = employmenthero.parse_job_posting(job_html, slug)
                     rows.append((slug, payload))
                 seen.update(slugs)
                 await save_drafts(session_factory, category_id, rows, source="employmenthero")
