@@ -174,6 +174,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read Cv
+         * @description Read an uploaded PDF CV in memory and return the IT skills it names; the CV is not stored.
+         */
+        post: operations["read_cv_api_cv_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Match Cv
+         * @description Rank every open job against CV skills, so a saved CV needs no re-upload.
+         */
+        post: operations["match_cv_api_matches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -195,6 +235,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Body_read_cv_api_cv_post */
+        Body_read_cv_api_cv_post: {
+            /** File */
+            file: string;
+        };
         /** CategoryItem */
         CategoryItem: {
             /**
@@ -210,6 +255,14 @@ export interface components {
             seek_classification_id: string;
             /** Active Job Count */
             active_job_count: number;
+        };
+        /**
+         * CvSkills
+         * @description The IT skills found in an uploaded CV; the page keeps them in the browser.
+         */
+        CvSkills: {
+            /** Skills */
+            skills: string[];
         };
         /** GreenListChange */
         GreenListChange: {
@@ -386,6 +439,26 @@ export interface components {
             /** Closed At */
             closed_at?: string | null;
         };
+        /** JobMatch */
+        JobMatch: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Position */
+            position: string;
+            /** Company Name */
+            company_name: string;
+            /** Location */
+            location: string;
+            /** Salary Label */
+            salary_label: string;
+            /** Score */
+            score: number;
+            /** Missing Skills */
+            missing_skills: string[];
+        };
         /**
          * LocationBreakdown
          * @description Open jobs per region, biggest first.
@@ -402,6 +475,11 @@ export interface components {
             region: string;
             /** Count */
             count: number;
+        };
+        /** MatchRequest */
+        MatchRequest: {
+            /** Skills */
+            skills: string[];
         };
         /** PaginatedJobs */
         PaginatedJobs: {
@@ -782,6 +860,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GreenListChangesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_cv_api_cv_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_read_cv_api_cv_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CvSkills"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    match_cv_api_matches_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobMatch"][];
                 };
             };
             /** @description Validation Error */

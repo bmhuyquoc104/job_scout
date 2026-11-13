@@ -22,6 +22,8 @@ const EXPANDED = 220;
 // Material "work" (briefcase) and "bar chart" icon paths, inlined to avoid a whole icon package.
 const WORK = "M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z";
 const BAR_CHART = "M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z";
+const DESCRIPTION = "M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z";
+const STAR = "M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z";
 const CHECK_CIRCLE = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z";
 
 function NavIcon({ path }: { path: string }) {
@@ -53,6 +55,8 @@ export default function SideNav() {
       selected: pathname === `/categories/${categoryId}` || pathname.startsWith("/jobs/"),
     },
     { label: "Diagrams", icon: BAR_CHART, to: `/categories/${categoryId}/diagrams`, selected: pathname.endsWith("/diagrams") },
+    { label: "My CV", icon: DESCRIPTION, to: "/cv", selected: pathname === "/cv", standalone: true },
+    { label: "Recommended", icon: STAR, to: "/recommended-jobs", selected: pathname === "/recommended-jobs", standalone: true },
     // Immigration NZ's list is not tied to a job category.
     { label: "Green List", icon: CHECK_CIRCLE, to: "/green-list", selected: pathname.startsWith("/green-list"), standalone: true },
   ];

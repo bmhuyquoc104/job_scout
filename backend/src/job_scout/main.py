@@ -11,6 +11,7 @@ from job_scout.core.logging import configure_logging
 from job_scout.database import engine
 from job_scout.green_list.router import router as green_list_router
 from job_scout.jobs.router import router as jobs_router
+from job_scout.matching.router import router as matching_router
 
 
 @asynccontextmanager
@@ -25,6 +26,7 @@ register_exception_handlers(app)
 app.include_router(categories_router, prefix="/api")
 app.include_router(jobs_router, prefix="/api")
 app.include_router(green_list_router, prefix="/api")
+app.include_router(matching_router, prefix="/api")
 
 
 def print_openapi() -> None:

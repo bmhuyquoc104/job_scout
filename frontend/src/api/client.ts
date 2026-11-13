@@ -12,6 +12,8 @@ export type GreenListResponse = components["schemas"]["GreenListResponse"];
 export type GreenListRole = components["schemas"]["GreenListRoleItem"];
 export type GreenListChange = components["schemas"]["GreenListChange"];
 export type GreenListChangesResponse = components["schemas"]["GreenListChangesResponse"];
+export type CvSkills = components["schemas"]["CvSkills"];
+export type JobMatch = components["schemas"]["JobMatch"];
 export type JobStatus = "open" | "closed" | "all";
 export type JobSource = JobListItem["source"];
 
@@ -31,7 +33,10 @@ export class ApiError extends Error {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const response = await fetch(path);
+  return parse(await fetch(path));
+}
+
+async function parse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     throw new ApiError(
@@ -82,4 +87,22 @@ export function getJobFacets(categoryId: string): Promise<JobFacets> {
 
 export function getJob(jobId: string): Promise<JobDetail> {
   return get(`/api/jobs/${jobId}`);
+}
+
+/** Uploads a PDF CV; the server reads it in memory and returns only the IT skills it names. */
+export async function uploadCv(file: File): Promise<string[]> {
+  const body = new FormData();
+  body.append("file", file);
+  return (await parse<CvSkills>(await fetch("/api/cv", { method: "POST", body }))).skills;
+}
+
+/** Every open job ranked against the CV skills, best first. */
+export async function getMatches(skills: string[]): Promise<JobMatch[]> {
+  return parse(
+    await fetch("/api/matches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skills }),
+    }),
+  );
 }
