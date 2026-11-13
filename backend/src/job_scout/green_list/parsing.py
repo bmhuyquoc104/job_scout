@@ -52,12 +52,14 @@ class RoleRecord:
     title: str
     anzsco_code: str
     industry: str
-    tier: int
+    tier: int | None
     pathway: str
     requirements: str
     engineering_degrees: str
     note: str
     raw: dict[str, Any]
+    # Which official lists the role is on (Australia); NZ has tiers instead.
+    lists: tuple[str, ...] = ()
 
 
 def _raw(value: Any) -> Any:

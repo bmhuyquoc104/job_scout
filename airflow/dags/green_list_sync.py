@@ -10,7 +10,7 @@ EXTERNAL = {"python": BACKEND_PYTHON, "expect_airflow": False, "expect_pendulum"
 
 @dag(
     dag_id="job_scout_green_list_monthly",
-    description="Fetch Immigration NZ's Green List, store it, and record tier changes.",
+    description="Fetch each country's priority-occupation list (NZ Green List, AU skilled occupation lists), store it, and record changes.",
     schedule="0 3 1 * *",  # 1st of each month, 03:00 Pacific/Auckland
     start_date=pendulum.datetime(2026, 11, 2, tz="Pacific/Auckland"),
     catchup=False,
@@ -20,7 +20,14 @@ EXTERNAL = {"python": BACKEND_PYTHON, "expect_airflow": False, "expect_pendulum"
 )
 def job_scout_green_list_monthly():
     @task.external_python(**EXTERNAL)
-    def sync_green_list() -> dict:
+    def countries() -> list[str]:
+        from job_scout.green_list.sync import FETCHERS
+
+        return list(FETCHERS)
+
+    # One task per country, so one source being down does not stop the others.
+    @task.external_python(**EXTERNAL)
+    def sync_green_list(country: str) -> dict:
         import asyncio
         from dataclasses import asdict
 
@@ -29,9 +36,9 @@ def job_scout_green_list_monthly():
 
         configure_logging()
         # The first run only stores a baseline; later runs record new, removed and tier-changed roles.
-        return asdict(asyncio.run(run()))
+        return asdict(asyncio.run(run(country=country)))
 
-    sync_green_list()
+    sync_green_list.expand(country=countries())
 
 
 job_scout_green_list_monthly()

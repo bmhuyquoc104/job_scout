@@ -25,12 +25,12 @@ async def test_noisy_seek_fields_do_not_reset_a_completed_draft(
     }
     await save_drafts(factory, category_id, [("noisy", first)])
     async with factory() as session, session.begin():
-        await session.execute(update(JobDraft).values(status="accredited"))
+        await session.execute(update(JobDraft).values(status="eligible"))
 
     # Only the per-request noise differs, so the draft must stay done.
     noisy = {**first, "tracking": "b", "solMetadata": "y", "listingDateDisplay": "2d ago"}
     await save_drafts(factory, category_id, [("noisy", noisy)])
-    assert await _status(factory) == "accredited"
+    assert await _status(factory) == "eligible"
 
     # A real change still sends it back to be enriched.
     await save_drafts(factory, category_id, [("noisy", {**noisy, "teaser": "new text"})])

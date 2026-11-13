@@ -116,7 +116,7 @@ async def save_outcome(
                 processed_at=func.now(),
             )
         )
-        if status != "accredited" or enriched_data is None:
+        if status != "eligible" or enriched_data is None:
             return
 
         listing = NormalizedListing.model_validate(enriched_data)

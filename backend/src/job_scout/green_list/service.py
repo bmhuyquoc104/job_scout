@@ -1,6 +1,9 @@
+from collections import Counter
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from job_scout.core.countries import COUNTRIES
 from job_scout.green_list.models import GreenListEvent, GreenListEventType, GreenListRole
 from job_scout.green_list.schemas import (
     GreenListChange,
@@ -12,19 +15,23 @@ from job_scout.green_list.schemas import (
 _MAX_CHANGES = 500
 
 
-async def get_green_list(session: AsyncSession) -> GreenListResponse:
-    """The roles on the list now, with the tier counts and any recent tier move."""
+async def get_green_list(session: AsyncSession, country: str = "NZ") -> GreenListResponse:
+    """A country's roles on the list now, with tier or list counts and any recent tier move."""
     roles = (
         await session.scalars(
             select(GreenListRole)
-            .where(GreenListRole.is_active.is_(True))
+            .where(GreenListRole.is_active.is_(True), GreenListRole.country == country)
             .order_by(GreenListRole.title)
         )
     ).all()
     # Oldest first, so the last tier change per role wins.
     moves = await session.execute(
         select(GreenListEvent.role_id, GreenListEvent.occurred_at, GreenListEvent.details)
-        .where(GreenListEvent.event_type == GreenListEventType.TIER_CHANGED)
+        .join(GreenListRole, GreenListRole.id == GreenListEvent.role_id)
+        .where(
+            GreenListEvent.event_type == GreenListEventType.TIER_CHANGED,
+            GreenListRole.country == country,
+        )
         .order_by(GreenListEvent.occurred_at)
     )
     latest_move = {role_id: (at, details["from_tier"]) for role_id, at, details in moves}
@@ -38,6 +45,10 @@ async def get_green_list(session: AsyncSession) -> GreenListResponse:
         for role in roles
     ]
     return GreenListResponse(
+        country=country,
+        list_name=COUNTRIES[country].occupation_list_name,
+        source_name=COUNTRIES[country].immigration_body,
+        list_counts=dict(Counter(name for role in roles for name in role.lists)),
         synced_at=max((role.last_seen_at for role in roles), default=None),
         tier_1=sum(role.tier == 1 for role in roles),
         tier_2=sum(role.tier == 2 for role in roles),
@@ -46,12 +57,17 @@ async def get_green_list(session: AsyncSession) -> GreenListResponse:
     )
 
 
-async def get_changes(session: AsyncSession, days: int) -> GreenListChangesResponse:
+async def get_changes(
+    session: AsyncSession, days: int, country: str = "NZ"
+) -> GreenListChangesResponse:
     rows = (
         await session.execute(
             select(GreenListEvent, GreenListRole)
             .join(GreenListRole, GreenListRole.id == GreenListEvent.role_id)
-            .where(GreenListEvent.occurred_at >= func.now() - func.make_interval(0, 0, 0, days))
+            .where(
+                GreenListEvent.occurred_at >= func.now() - func.make_interval(0, 0, 0, days),
+                GreenListRole.country == country,
+            )
             .order_by(GreenListEvent.occurred_at.desc(), GreenListRole.title)
             .limit(_MAX_CHANGES)
         )

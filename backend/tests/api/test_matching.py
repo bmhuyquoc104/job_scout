@@ -44,6 +44,7 @@ async def match_client(async_test_database_url: str) -> AsyncIterator[AsyncClien
         session.add_all(
             Job(
                 category_id=category.id,
+                source="indeed" if external_id == "b" else "seek",
                 external_id=external_id,
                 company_name=f"Company {external_id}",
                 location="Auckland",
@@ -59,6 +60,19 @@ async def match_client(async_test_database_url: str) -> AsyncIterator[AsyncClien
                 ("d", "Registered Nurse", "patient care medication", True),
                 ("e", "Healthcare Assistant", "patient care medication", True),
                 ("z", "Python Developer", "FastAPI PostgreSQL Docker", False),
+            )
+        )
+        au = await session.scalar(select(Category).where(Category.slug == "ict-au"))
+        assert au is not None
+        session.add(
+            Job(
+                category_id=au.id,
+                external_id="au",
+                company_name="Company au",
+                location="Sydney NSW",
+                position="Python Developer",
+                job_description="FastAPI PostgreSQL Docker",
+                url="https://www.seek.com.au/job/au",
             )
         )
         await session.flush()
@@ -97,12 +111,29 @@ async def test_every_open_job_is_ranked_with_skills_to_add_for_weak_matches(
         "Company c",
     ]
     assert len(matches) == 5  # all open jobs, including ones with nothing in common; not closed "z"
+    assert (matches["Company a"]["source"], matches["Company b"]["source"]) == ("seek", "indeed")
     assert (matches["Company a"]["score"], matches["Company a"]["missing_skills"]) == (80, [])
     assert matches["Company b"]["score"] == 33
     assert matches["Company b"]["missing_skills"] == ["kubernetes", "terraform"]
     assert matches["Company c"]["score"] == 12
     # Words that are not skills ("engineer", "patient") are never suggested.
     assert (matches["Company d"]["score"], matches["Company d"]["missing_skills"]) == (0, [])
+
+
+async def test_matches_only_cover_the_chosen_country(match_client: AsyncClient) -> None:
+    skills = ["python", "fastapi"]
+
+    nz = await match_client.post("/api/matches", json={"skills": skills})
+    au = await match_client.post("/api/matches", json={"skills": skills, "country": "AU"})
+
+    assert "Company au" not in {match["company_name"] for match in nz.json()}
+    assert [match["company_name"] for match in au.json()] == ["Company au"]
+
+
+async def test_unknown_country_is_rejected(match_client: AsyncClient) -> None:
+    response = await match_client.post("/api/matches", json={"skills": ["python"], "country": "XX"})
+
+    assert response.status_code == 422
 
 
 async def test_cv_upload_returns_its_distinct_words(match_client: AsyncClient) -> None:

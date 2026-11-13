@@ -7,6 +7,7 @@ import ChartShell from "../components/charts/ChartShell";
 import ChartTable from "../components/charts/ChartTable";
 import HorizontalBarChart, { type BarItem } from "../components/charts/HorizontalBarChart";
 import { chartColors } from "../theme";
+import { useCountry } from "../country/CountryContext";
 import { loadCvSkills } from "../utils/cvSkills";
 
 const PAGE_SIZE = 20;
@@ -64,9 +65,10 @@ function JobRow({ match }: { match: JobMatch }) {
 export default function RecommendedJobs() {
   const [skills] = useState(loadCvSkills);
   const [page, setPage] = useState(1);
+  const { country, countryName, loading: countryLoading } = useCountry();
   const { data: matches, error, loading } = useApi(
-    () => (skills.length ? getMatches(skills) : Promise.resolve([])),
-    [skills],
+    () => (skills.length && !countryLoading ? getMatches(skills, country) : Promise.resolve([])),
+    [skills, country, countryLoading],
     "Unable to load recommended jobs.",
   );
 
@@ -107,11 +109,15 @@ export default function RecommendedJobs() {
           {matches && matches.length > 0 && (
             <Stack spacing={3}>
               <Typography color="text.secondary">
-                Based on the CV saved in this browser (
+                Open jobs in {countryName}, based on the CV saved in this browser (
                 <Link component={RouterLink} to="/cv">
                   change
                 </Link>
-                ). The score is how much of a job's listed IT skills your CV covers; it is not a judgement of fit.
+                ). The score is how much of a job's listed IT skills your CV covers; it is not a judgement of fit. Change the country on the{" "}
+                <Link component={RouterLink} to="/">
+                  dashboard
+                </Link>
+                .
               </Typography>
 
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>

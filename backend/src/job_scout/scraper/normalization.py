@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from job_scout.core.countries import COUNTRIES
+
 
 class NormalizedListing(BaseModel):
     source: str = "seek"
@@ -139,7 +141,7 @@ def get_pay_period(salary: str = "") -> str:
     return ""
 
 
-def normalize_listing(payload: dict[str, Any]) -> NormalizedListing:
+def normalize_listing(payload: dict[str, Any], country: str = "NZ") -> NormalizedListing:
     external_id = str(payload.get("id") or "")
     advertiser = payload.get("advertiser") or {}
     company_name = payload.get("companyName")
@@ -169,5 +171,5 @@ def normalize_listing(payload: dict[str, Any]) -> NormalizedListing:
         work_types=payload.get("workTypes") or [],
         salary_label=salary_label,
         pay_period=get_pay_period(salary_label),
-        url=f"https://www.seek.co.nz/job/{external_id}",
+        url=f"https://{COUNTRIES[country].seek_host}/job/{external_id}",
     )

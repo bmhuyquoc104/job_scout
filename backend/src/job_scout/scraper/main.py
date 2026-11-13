@@ -38,10 +38,10 @@ async def run_once(
         return 1
 
     logger.info(
-        "Scrape complete: %s fetched, %s accredited, %s not accredited, %s failed",
+        "Scrape complete: %s fetched, %s eligible, %s ineligible, %s failed",
         summary.fetched,
-        summary.accredited,
-        summary.not_accredited,
+        summary.eligible,
+        summary.ineligible,
         summary.failed,
     )
     return int(summary.failed > 0)

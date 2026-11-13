@@ -6,6 +6,6 @@ from uuid import UUID
 class ScrapeSummary:
     category_id: UUID
     fetched: int = 0
-    accredited: int = 0
-    not_accredited: int = 0
+    eligible: int = 0
+    ineligible: int = 0
     failed: int = 0

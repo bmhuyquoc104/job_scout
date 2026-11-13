@@ -1,4 +1,4 @@
-"""Glassdoor NZ via the `/graph` endpoint its own site uses (the approach JobSpy takes).
+"""Glassdoor (one country per run) via the `/graph` endpoint its own site uses (as JobSpy does).
 
 The CSRF token is supplied through settings; Glassdoor can rotate it at any time.
 Search results carry no description, so each page's jobs are completed with a details query.
@@ -11,13 +11,13 @@ from typing import Any
 from curl_cffi.requests import AsyncSession
 
 from job_scout.config import settings
+from job_scout.core.countries import COUNTRIES
 from job_scout.core.errors import AppError, ErrorCode
 from job_scout.scraper import chrome_http, employmenthero
 from job_scout.scraper.normalization import NormalizedListing, get_pay_period
 
-BASE_URL = "https://www.glassdoor.co.nz"
 SEARCH_TERM = "IT"
-LOCATION = "New Zealand"  # shortcut: resolved through Glassdoor's location lookup (a country).
+# shortcut: the country name is resolved through Glassdoor's location lookup (a country).
 PAGE_SIZE = 100
 DETAILS_PER_REQUEST = 25
 MAX_PAGES = 20
@@ -114,28 +114,33 @@ _DETAILS_ALIAS = """
 """
 
 
-def client() -> AsyncSession:
+def client(country: str = "NZ") -> AsyncSession:
     if not settings.glassdoor_csrf_token:
         raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "GLASSDOOR_CSRF_TOKEN is not set")
     return chrome_http.client({"gd-csrf-token": settings.glassdoor_csrf_token})
 
 
-async def _graph(http: AsyncSession, operation: str, query: str, variables: dict[str, Any]) -> Any:
+async def _graph(
+    http: AsyncSession, operation: str, query: str, variables: dict[str, Any], country: str = "NZ"
+) -> Any:
     body = [{"operationName": operation, "variables": variables, "query": query}]
-    response = await chrome_http.request(http, "POST", f"{BASE_URL}/graph", json=body)
+    response = await chrome_http.request(
+        http, "POST", f"https://{COUNTRIES[country].glassdoor_host}/graph", json=body
+    )
     return response.json()[0]
 
 
-async def _search_variables(http: AsyncSession) -> dict[str, Any]:
+async def _search_variables(http: AsyncSession, country: str) -> dict[str, Any]:
+    place = COUNTRIES[country].search_place
     response = await chrome_http.request(
         http,
         "GET",
-        f"{BASE_URL}/autocomplete/location",
-        params={"locationTypeFilters": "CITY,STATE,COUNTRY", "caller": "jobs", "term": LOCATION},
+        f"https://{COUNTRIES[country].glassdoor_host}/autocomplete/location",
+        params={"locationTypeFilters": "CITY,STATE,COUNTRY", "caller": "jobs", "term": place},
     )
     places = response.json()
     if not places:
-        raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, f"Glassdoor location {LOCATION!r} not found")
+        raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, f"Glassdoor location {place!r} not found")
     location_type = _LOCATION_TYPES[places[0]["locationType"]]
     location_id = places[0]["locationId"]
     return {
@@ -148,21 +153,21 @@ async def _search_variables(http: AsyncSession) -> dict[str, Any]:
     }
 
 
-async def _descriptions(http: AsyncSession, ids: list[str]) -> dict[str, str]:
+async def _descriptions(http: AsyncSession, ids: list[str], country: str = "NZ") -> dict[str, str]:
     found: dict[str, str] = {}
     for start in range(0, len(ids), DETAILS_PER_REQUEST):
         aliases = "".join(
             _DETAILS_ALIAS % (job_id, job_id) for job_id in ids[start : start + DETAILS_PER_REQUEST]
         )
-        answer = await _graph(http, "JobDetails", f"query JobDetails {{{aliases}}}", {})
+        answer = await _graph(http, "JobDetails", f"query JobDetails {{{aliases}}}", {}, country)
         for alias, view in (answer.get("data") or {}).items():
             if view:
                 found[alias[1:]] = view["job"]["description"]
     return found
 
 
-async def pages(http: AsyncSession) -> AsyncIterator[list[dict[str, Any]]]:
-    variables = await _search_variables(http)
+async def pages(http: AsyncSession, country: str = "NZ") -> AsyncIterator[list[dict[str, Any]]]:
+    variables = await _search_variables(http, country)
     cursor: str | None = None
     today = datetime.now(UTC).date()
     for page in range(1, MAX_PAGES + 1):
@@ -171,14 +176,15 @@ async def pages(http: AsyncSession) -> AsyncIterator[list[dict[str, Any]]]:
             "JobSearchResultsQuery",
             _SEARCH_QUERY,
             {**variables, "pageNumber": page, "pageCursor": cursor},
+            country,
         )
         result = (answer.get("data") or {}).get("jobListings")
         if not result:
             raise AppError(
                 ErrorCode.SCRAPE_SOURCE_ERROR, f"Glassdoor API error: {answer.get('errors')}"
             )
-        payloads = [parse_listing(item, today) for item in result.get("jobListings") or []]
-        descriptions = await _descriptions(http, [p["id"] for p in payloads])
+        payloads = [parse_listing(item, today, country) for item in result.get("jobListings") or []]
+        descriptions = await _descriptions(http, [p["id"] for p in payloads], country)
         for payload in payloads:
             payload["description"] = descriptions.get(payload["id"], "")
         yield payloads
@@ -190,7 +196,7 @@ async def pages(http: AsyncSession) -> AsyncIterator[list[dict[str, Any]]]:
     raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, f"Exceeded {MAX_PAGES} Glassdoor pages")
 
 
-def parse_listing(listing: dict[str, Any], today: date) -> dict[str, Any]:
+def parse_listing(listing: dict[str, Any], today: date, country: str = "NZ") -> dict[str, Any]:
     """A search result flattened into our payload (with `id`, `url` and a posted date)."""
     view = listing["jobview"]
     header, job = view["header"], view["job"]
@@ -206,7 +212,7 @@ def parse_listing(listing: dict[str, Any], today: date) -> dict[str, Any]:
         "payMin": pay.get("p10"),
         "payMax": pay.get("p90"),
         "jobTypes": header.get("jobTypeKeys") or [],
-        "url": f"{BASE_URL}/job-listing/j?jl={job_id}",
+        "url": f"https://{COUNTRIES[country].glassdoor_host}/job-listing/j?jl={job_id}",
     }
 
 

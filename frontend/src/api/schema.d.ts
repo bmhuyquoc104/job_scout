@@ -205,7 +205,7 @@ export interface paths {
         put?: never;
         /**
          * Match Cv
-         * @description Rank every open job against CV skills, so a saved CV needs no re-upload.
+         * @description Rank every open job in a country against CV skills, so a saved CV needs no re-upload.
          */
         post: operations["match_cv_api_matches_post"];
         delete?: never;
@@ -253,6 +253,10 @@ export interface components {
             slug: string;
             /** Seek Classification Id */
             seek_classification_id: string;
+            /** Country */
+            country: string;
+            /** Country Name */
+            country_name: string;
             /** Active Job Count */
             active_job_count: number;
         };
@@ -287,7 +291,7 @@ export interface components {
             /** From Tier */
             from_tier?: number | null;
             /** Tier */
-            tier: number;
+            tier: number | null;
         };
         /** GreenListChangesResponse */
         GreenListChangesResponse: {
@@ -296,6 +300,16 @@ export interface components {
         };
         /** GreenListResponse */
         GreenListResponse: {
+            /** Country */
+            country: string;
+            /** List Name */
+            list_name: string;
+            /** Source Name */
+            source_name: string;
+            /** List Counts */
+            list_counts: {
+                [key: string]: number;
+            };
             /** Synced At */
             synced_at: string | null;
             /** Tier 1 */
@@ -321,7 +335,9 @@ export interface components {
             /** Industry */
             industry: string;
             /** Tier */
-            tier: number;
+            tier: number | null;
+            /** Lists */
+            lists: string[];
             /** Pathway */
             pathway: string;
             /** Requirements */
@@ -480,6 +496,11 @@ export interface components {
         MatchRequest: {
             /** Skills */
             skills: string[];
+            /**
+             * Country
+             * @default NZ
+             */
+            country: string;
         };
         /** PaginatedJobs */
         PaginatedJobs: {
@@ -824,7 +845,9 @@ export interface operations {
     };
     get_green_list_api_green_list_get: {
         parameters: {
-            query?: never;
+            query?: {
+                country?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -840,12 +863,22 @@ export interface operations {
                     "application/json": components["schemas"]["GreenListResponse"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     get_green_list_changes_api_green_list_changes_get: {
         parameters: {
             query?: {
                 days?: number;
+                country?: string;
             };
             header?: never;
             path?: never;

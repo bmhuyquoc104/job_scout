@@ -16,7 +16,7 @@ async def test_fetch_search_page_sends_category_and_pagination_parameters() -> N
 
     fetch = getattr(seek_client, "fetch_search_page", None)
     assert callable(fetch), "fetch_search_page must exist"
-    category = SimpleNamespace(seek_classification_id="6281")
+    category = SimpleNamespace(seek_classification_id="6281", country="NZ")
     async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
         response = await fetch(client, category, 3)
 
@@ -36,7 +36,7 @@ async def test_fetch_search_page_rejects_non_object_payload_with_central_error()
     async def respond(_: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=[{"id": "unexpected"}])
 
-    category = SimpleNamespace(seek_classification_id="6281")
+    category = SimpleNamespace(seek_classification_id="6281", country="NZ")
     async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
         with pytest.raises(AppError) as error:
             await seek_client.fetch_search_page(client, category, 1)
@@ -56,7 +56,7 @@ async def test_fetch_search_page_follows_seek_market_redirect() -> None:
             )
         return httpx.Response(200, json={"data": [{"id": "job-1"}]})
 
-    category = SimpleNamespace(seek_classification_id="6281")
+    category = SimpleNamespace(seek_classification_id="6281", country="NZ")
     async with httpx.AsyncClient(
         transport=httpx.MockTransport(respond), follow_redirects=False
     ) as client:
@@ -82,7 +82,7 @@ async def _fetch_with_responses(
         sleeps.append(delay)
 
     monkeypatch.setattr(seek_client.asyncio, "sleep", fake_sleep)
-    category = SimpleNamespace(seek_classification_id="6281")
+    category = SimpleNamespace(seek_classification_id="6281", country="NZ")
     async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
         result = await seek_client.fetch_search_page(client, category, 1)
     return result, calls, sleeps
@@ -147,3 +147,19 @@ def test_parse_search_page_rejects_bad_responses_as_source_errors(bad: dict[str,
         seek_client.parse_search_page(bad)
 
     assert error.value.code is ErrorCode.SCRAPE_SOURCE_ERROR
+
+
+async def test_fetch_search_page_uses_the_categorys_country_site() -> None:
+    requests: list[httpx.Request] = []
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"data": [], "totalCount": 0})
+
+    category = SimpleNamespace(seek_classification_id="6281", country="AU")
+    async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+        await seek_client.fetch_search_page(client, category, 1)
+
+    assert requests[0].url.host == "www.seek.com.au"
+    assert requests[0].url.params["siteKey"] == "AU-Main"
+    assert requests[0].url.params["locale"] == "en-AU"

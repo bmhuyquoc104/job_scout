@@ -15,14 +15,15 @@ def job_board_dag(source: str, title: str, schedule: str):
 
     @dag(
         dag_id=f"job_scout_{source}_daily",
-        description=f"{title}: read the IT search, reconcile, check accredited employers.",
+        description=f"{title}: read the IT search, reconcile, check employer eligibility.",
         schedule=schedule,  # Asia/Ho_Chi_Minh, after the SEEK (06:00) and Employment Hero (07:00) runs
         start_date=pendulum.datetime(2026, 11, 7, tz="Asia/Ho_Chi_Minh"),
         catchup=False,
         max_active_runs=1,
         default_args={"retries": 2, "retry_delay": timedelta(minutes=5)},
-        # The search is "IT", so jobs are saved under one category (default ICT).
-        params={"category": Param("ict", type="string", pattern="^[a-z0-9-]+$")},
+        # The search is "IT", so jobs are saved under each enabled country's ICT category.
+        # "all" = every such category; or the slug of one (e.g. ict-au).
+        params={"category": Param("all", type="string", pattern="^[a-z0-9-]+$")},
         tags=["job-scout"],
     )
     def job_board_daily():
@@ -34,7 +35,9 @@ def job_board_dag(source: str, title: str, schedule: str):
             from job_scout.scraper.phases import enabled_category_slugs
 
             configure_logging()
-            return asyncio.run(enabled_category_slugs(category, source))
+            return asyncio.run(
+                enabled_category_slugs(None if category == "all" else category, source)
+            )
 
         @task.external_python(**ONE_AT_A_TIME)
         def discover(category: str, source: str) -> str:
@@ -79,5 +82,5 @@ def job_board_dag(source: str, title: str, schedule: str):
     return job_board_daily()
 
 
-indeed_daily = job_board_dag("indeed", "Indeed NZ", "0 8 * * *")
-glassdoor_daily = job_board_dag("glassdoor", "Glassdoor NZ", "0 9 * * *")
+indeed_daily = job_board_dag("indeed", "Indeed", "0 8 * * *")
+glassdoor_daily = job_board_dag("glassdoor", "Glassdoor", "0 9 * * *")

@@ -22,11 +22,17 @@ async def _category_id(slug: str) -> UUID:
     return category.id
 
 
+# The job boards are searched for "IT", so each country's ICT category is where that search lands.
+BOARD_CLASSIFICATION = "6281"
+
+
 async def enabled_category_slugs(only: str | None = None, source: str = "seek") -> list[str]:
     """Categories a run covers: all enabled ones (that the source has), or just `only`."""
     query = select(Category.slug).where(Category.enabled.is_(True)).order_by(Category.slug)
     if source == "employmenthero":
         query = query.where(Category.employmenthero_sector_id.is_not(None))
+    elif source in ("indeed", "glassdoor"):
+        query = query.where(Category.seek_classification_id == BOARD_CLASSIFICATION)
     async with session_factory() as session:
         slugs = list(await session.scalars(query))
     if only is None:

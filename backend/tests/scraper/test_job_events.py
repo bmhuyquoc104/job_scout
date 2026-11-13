@@ -38,7 +38,7 @@ async def promote(
         factory,
         category_id,
         external_id,
-        status="accredited",
+        status="eligible",
         enriched_data=enriched(external_id, **overrides),
     )
 

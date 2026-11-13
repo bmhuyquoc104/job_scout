@@ -209,7 +209,8 @@ async def test_every_seek_classification_is_seeded_and_only_ict_is_enabled(
     connection: asyncpg.Connection,
 ) -> None:
     rows = await connection.fetch(
-        "SELECT slug, name, seek_classification_id, enabled FROM category ORDER BY slug"
+        "SELECT slug, name, seek_classification_id, enabled FROM category "
+        "WHERE country = 'NZ' ORDER BY slug"
     )
 
     assert len(rows) == 27
@@ -220,6 +221,22 @@ async def test_every_seek_classification_is_seeded_and_only_ict_is_enabled(
     by_slug = {row["slug"]: row for row in rows}
     assert by_slug["trades-services"]["name"] == "Trades & Services"
     assert by_slug["mining-resources-energy"]["seek_classification_id"] == "6058"
+
+
+async def test_australian_ict_category_exists_but_is_off_until_enabled(
+    connection: asyncpg.Connection,
+) -> None:
+    row = await connection.fetchrow(
+        "SELECT seek_classification_id, employmenthero_sector_id, enabled FROM category "
+        "WHERE slug = 'ict-au' AND country = 'AU'"
+    )
+
+    # Same ids as the NZ ICT category; off so no scheduled run scrapes it.
+    assert dict(row) == {
+        "seek_classification_id": "6281",
+        "employmenthero_sector_id": 18,
+        "enabled": False,
+    }
 
 
 async def test_green_list_tables_exist_and_events_follow_their_role(

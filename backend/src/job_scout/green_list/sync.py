@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -7,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from job_scout.core.errors import AppError, ErrorCode
+from job_scout.green_list.australia import fetch_occupations
 from job_scout.green_list.client import fetch_green_list
 from job_scout.green_list.models import GreenListEvent, GreenListEventType, GreenListRole
 from job_scout.green_list.parsing import RoleRecord
@@ -26,19 +28,26 @@ class SyncSummary:
 
 
 async def apply_sync(
-    session_factory: async_sessionmaker[AsyncSession], records: list[RoleRecord]
+    session_factory: async_sessionmaker[AsyncSession],
+    records: list[RoleRecord],
+    country: str = "NZ",
 ) -> SyncSummary:
-    """Bring the table in line with the fetched list and record what changed.
+    """Bring one country's roles in line with the fetched list and record what changed.
 
-    The first ever sync is a baseline: it stores the roles but writes no events, so the change
-    history starts from "nothing changed yet" instead of 215 "new" roles.
+    The first ever sync for a country is a baseline: it stores the roles but writes no events,
+    so the change history starts from "nothing changed yet" instead of hundreds of "new" roles.
     """
     ids = [record.record_id for record in records]
     if not records or len(set(ids)) != len(ids):
         raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "Green List is empty or repeats a record id")
 
     async with session_factory() as session, session.begin():
-        existing = {role.record_id: role for role in await session.scalars(select(GreenListRole))}
+        existing = {
+            role.record_id: role
+            for role in await session.scalars(
+                select(GreenListRole).where(GreenListRole.country == country)
+            )
+        }
         active_before = sum(role.is_active for role in existing.values())
         if active_before and len(records) < active_before * MIN_KEEP_RATIO:
             raise AppError(
@@ -51,7 +60,9 @@ async def apply_sync(
         for record in records:
             role = existing.get(record.record_id)
             if role is None:
-                role = GreenListRole(record_id=record.record_id, raw=record.raw, **_content(record))
+                role = GreenListRole(
+                    country=country, record_id=record.record_id, raw=record.raw, **_content(record)
+                )
                 session.add(role)
                 summary.created += 1
                 if not summary.baseline:
@@ -96,20 +107,33 @@ def _content(record: RoleRecord) -> dict[str, Any]:
         "requirements": record.requirements,
         "engineering_degrees": record.engineering_degrees,
         "note": record.note,
+        "lists": list(record.lists),
     }
 
 
+async def _fetch_nz() -> list[RoleRecord]:
+    async with httpx.AsyncClient(timeout=60) as http:
+        return await fetch_green_list(http)
+
+
+# One fetcher per country that has a priority-occupation list.
+FETCHERS: dict[str, Callable[[], Awaitable[list[RoleRecord]]]] = {
+    "NZ": _fetch_nz,
+    "AU": fetch_occupations,
+}
+
+
 async def sync_green_list(
-    session_factory: async_sessionmaker[AsyncSession] | None = None,
+    session_factory: async_sessionmaker[AsyncSession] | None = None, country: str = "NZ"
 ) -> SyncSummary:
-    """Fetch the Green List and apply it. This is what the monthly Airflow task runs."""
+    """Fetch a country's occupation list and apply it. This is what the monthly task runs."""
     from job_scout.database import session_factory as default_session_factory
 
-    async with httpx.AsyncClient(timeout=60) as http:
-        records = await fetch_green_list(http)
-    summary = await apply_sync(session_factory or default_session_factory, records)
+    records = await FETCHERS[country]()
+    summary = await apply_sync(session_factory or default_session_factory, records, country)
     logger.info(
-        "Green List synced: %d roles (%s), %d tier change(s), %d removed, %d restored",
+        "%s occupation list synced: %d roles (%s), %d tier change(s), %d removed, %d restored",
+        country,
         len(records),
         "baseline" if summary.baseline else f"{summary.created} new",
         summary.tier_changed,

@@ -10,6 +10,7 @@ from pypdf.errors import PyPdfError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from job_scout.categories.models import Category
 from job_scout.core.errors import AppError, ErrorCode
 from job_scout.jobs.models import Job
 from job_scout.matching.schemas import JobMatch
@@ -75,7 +76,7 @@ async def parse_cv(content: bytes) -> list[str]:
     return await asyncio.to_thread(read_cv_skills, content)  # PDF parsing is CPU-bound
 
 
-async def match_jobs(session: AsyncSession, skills: list[str]) -> list[JobMatch]:
+async def match_jobs(session: AsyncSession, skills: list[str], country: str) -> list[JobMatch]:
     cv = {skill.lower() for skill in skills} & SKILL_KEYS
     jobs = (
         await session.execute(
@@ -87,7 +88,8 @@ async def match_jobs(session: AsyncSession, skills: list[str]) -> list[JobMatch]
                 Job.salary_label,
                 Job.job_description,
             )
-            .where(Job.is_active.is_(True))
+            .join(Category, Category.id == Job.category_id)
+            .where(Job.is_active.is_(True), Category.country == country)
             .order_by(Job.listed_at.desc().nulls_last())
         )
     ).all()

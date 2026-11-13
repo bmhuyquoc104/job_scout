@@ -14,6 +14,7 @@ import sys
 
 from sqlalchemy import select, update
 
+from job_scout.categories.models import Category
 from job_scout.core.errors import AppError
 from job_scout.core.logging import configure_logging
 from job_scout.database import engine, session_factory
@@ -29,7 +30,8 @@ MAX_CONSECUTIVE_FAILURES = 5  # SEEK is probably blocking us; stop instead of ha
 async def backfill(limit: int | None, delay: float) -> tuple[int, int, int]:
     async with session_factory() as session:  # closed before any network call
         query = (
-            select(Job.id, Job.external_id)
+            select(Job.id, Job.external_id, Category.country)
+            .join(Category, Category.id == Job.category_id)
             .where(Job.source == "seek", Job.is_active.is_(True))
             .order_by(Job.first_seen_at)
         )
@@ -38,11 +40,11 @@ async def backfill(limit: int | None, delay: float) -> tuple[int, int, int]:
     logger.info("Backfilling %d active SEEK jobs", len(jobs))
     updated = skipped = failed = streak = 0
     async with chrome_http.client() as http:
-        for done, (job_id, external_id) in enumerate(jobs, 1):
+        for done, (job_id, external_id, country) in enumerate(jobs, 1):
             if done % 25 == 0:
                 logger.info("%d/%d (updated=%d failed=%d)", done, len(jobs), updated, failed)
             try:
-                text = await fetch_description(http, external_id)
+                text = await fetch_description(http, external_id, country)
             except AppError as exc:
                 failed, streak = failed + 1, streak + 1
                 logger.warning("seek %s: %s", external_id, exc.message)

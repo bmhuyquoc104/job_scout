@@ -77,7 +77,7 @@ async def test_enrich_phase_returns_failure_when_drafts_remain_failed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def enrich(_: str, __: str) -> SimpleNamespace:
-        return SimpleNamespace(fetched=2, accredited=1, not_accredited=0, failed=1)
+        return SimpleNamespace(fetched=2, eligible=1, ineligible=0, failed=1)
 
     monkeypatch.setattr(scraper_main, "enrich_phase", enrich)
 
@@ -89,7 +89,7 @@ async def test_full_run_exits_nonzero_when_listings_failed(
     monkeypatch: pytest.MonkeyPatch, failed: int, expected: int
 ) -> None:
     async def run_all(_: str, __: str) -> SimpleNamespace:
-        return SimpleNamespace(fetched=2, accredited=0, not_accredited=0, failed=failed)
+        return SimpleNamespace(fetched=2, eligible=0, ineligible=0, failed=failed)
 
     monkeypatch.setattr(scraper_main, "run_all_phases", run_all)
 
@@ -154,7 +154,7 @@ async def test_the_source_option_reaches_the_phase(monkeypatch: pytest.MonkeyPat
 
     async def run_all(slug: str, source: str) -> SimpleNamespace:
         seen.append((slug, source))
-        return SimpleNamespace(fetched=1, accredited=1, not_accredited=0, failed=0)
+        return SimpleNamespace(fetched=1, eligible=1, ineligible=0, failed=0)
 
     monkeypatch.setattr(scraper_main, "run_all_phases", run_all)
 

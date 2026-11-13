@@ -15,12 +15,14 @@ import {
 import { useApi } from "../api/useApi";
 import ActiveFilters from "../components/ActiveFilters";
 import CategorySwitcher from "../components/CategorySwitcher";
+import { useCountry } from "../country/CountryContext";
 import JobColumnMenu from "../components/JobColumnMenu";
 import { JobTableContext } from "../components/JobTableContext";
 import { jobColumns } from "../components/jobColumns";
 
 export default function Jobs() {
   const { categoryId = "" } = useParams();
+  const { country } = useCountry();
   const [searchParams, setSearchParams] = useSearchParams();
   const params = useMemo(() => parseParams(searchParams), [searchParams]);
   const query = toApiQuery(params);
@@ -55,7 +57,7 @@ export default function Jobs() {
         </Link>
         <CategorySwitcher categoryId={categoryId} view="postings" />
         <Typography component="h1" variant="h4" sx={{ mt: 0.5, mb: 2, fontSize: 24, fontWeight: 700 }}>
-          Accredited jobs
+          {country === "NZ" ? "Accredited jobs" : "Jobs"}
         </Typography>
         <ActiveFilters />
         {error && <Alert severity="error">{error}</Alert>}

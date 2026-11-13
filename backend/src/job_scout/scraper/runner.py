@@ -32,7 +32,7 @@ async def run(
     return ScrapeSummary(
         category_id=category_id,
         fetched=discovery.fetched,
-        accredited=counts.get("accredited", 0),
-        not_accredited=counts.get("not_accredited", 0),
+        eligible=counts.get("eligible", 0),
+        ineligible=counts.get("ineligible", 0),
         failed=enrichment.failed,
     )

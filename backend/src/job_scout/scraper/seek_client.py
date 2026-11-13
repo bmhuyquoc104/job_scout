@@ -6,18 +6,13 @@ from curl_cffi.requests import AsyncSession
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError, model_validator
 
 from job_scout.categories.models import Category
+from job_scout.core.countries import COUNTRIES
 from job_scout.core.errors import AppError, ErrorCode
 from job_scout.scraper import chrome_http
 from job_scout.scraper.employmenthero import build_description
 
-SEEK_SEARCH_URL = "https://www.seek.co.nz/api/jobsearch/v5/search"
-GRAPHQL_URL = "https://www.seek.co.nz/graphql"
 DETAIL_QUERY = "query($id: ID!){ jobDetails(id:$id){ job{ content(platform: WEB) } } }"
-DETAIL_HEADERS = {
-    "seek-request-brand": "seek",
-    "seek-request-country": "NZ",
-    "x-seek-site": "chalice",
-}
+DETAIL_HEADERS = {"seek-request-brand": "seek", "x-seek-site": "chalice"}
 MAX_ATTEMPTS = 3
 
 
@@ -45,17 +40,18 @@ def parse_search_page(payload: dict[str, Any]) -> SearchPage:
 async def fetch_search_page(
     client: httpx.AsyncClient, category: Category, page: int
 ) -> dict[str, Any]:
+    site = COUNTRIES[category.country]
     for attempt in range(MAX_ATTEMPTS):
         try:
             response = await client.get(
-                SEEK_SEARCH_URL,
+                f"https://{site.seek_host}/api/jobsearch/v5/search",
                 params={
-                    "siteKey": "NZ-Main",
+                    "siteKey": site.seek_site_key,
                     "sourcesystem": "houston",
                     "page": str(page),
                     "pageSize": "22",
                     "classification": category.seek_classification_id,
-                    "locale": "en-NZ",
+                    "locale": site.seek_locale,
                 },
                 follow_redirects=True,
             )
@@ -75,14 +71,16 @@ async def fetch_search_page(
     return payload
 
 
-async def fetch_description(http: AsyncSession, external_id: str) -> str | None:
+async def fetch_description(
+    http: AsyncSession, external_id: str, country: str = "NZ"
+) -> str | None:
     """Plain-text description, or None when SEEK has no content for the job (taken down)."""
     response = await chrome_http.request(
         http,
         "POST",
-        GRAPHQL_URL,
+        f"https://{COUNTRIES[country].seek_host}/graphql",
         json={"query": DETAIL_QUERY, "variables": {"id": external_id}},
-        headers=DETAIL_HEADERS,
+        headers={**DETAIL_HEADERS, "seek-request-country": country},
     )
     payload: Any = response.json()
     job = ((payload.get("data") or {}).get("jobDetails") or {}).get("job") or {}

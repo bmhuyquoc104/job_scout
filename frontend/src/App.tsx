@@ -1,12 +1,14 @@
 import { Box, ThemeProvider, CssBaseline } from "@mui/material";
 import AppRoutes from "./routes";
 import SideNav from "./components/SideNav";
+import CountryProvider from "./country/CountryProvider";
 import theme from "./theme";
 
 export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <CountryProvider>
       <Box
         data-testid="app-shell"
         sx={{
@@ -27,6 +29,7 @@ export default function App() {
           <AppRoutes />
         </Box>
       </Box>
+      </CountryProvider>
     </ThemeProvider>
   );
 }

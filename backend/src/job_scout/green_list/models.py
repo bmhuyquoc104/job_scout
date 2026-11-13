@@ -24,21 +24,27 @@ from job_scout.models import Base
 
 
 class GreenListRole(Base):
-    """One role on Immigration NZ's Green List, as of the last monthly sync."""
+    """One priority occupation for a country (NZ: Green List; AU: skilled occupation lists)."""
 
     __tablename__ = "green_list_role"
-    __table_args__ = (UniqueConstraint("record_id"),)
+    __table_args__ = (UniqueConstraint("country", "record_id"),)
 
     id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()")
     )
-    record_id: Mapped[str] = mapped_column(String(32), nullable=False)  # Immigration NZ's own id
+    country: Mapped[str] = mapped_column(
+        String(2), nullable=False, default="NZ", server_default="NZ"
+    )
+    record_id: Mapped[str] = mapped_column(String(32), nullable=False)  # the source's own id
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     anzsco_code: Mapped[str] = mapped_column(String(16), nullable=False)
     industry: Mapped[str] = mapped_column(String(120), nullable=False)
-    tier: Mapped[int] = mapped_column(
-        Integer, nullable=False
-    )  # 1 = straight to residence, 2 = work to residence
+    # NZ: 1 = straight to residence, 2 = work to residence. None for countries without tiers.
+    tier: Mapped[int | None] = mapped_column(Integer)
+    # Australia: the official lists the role is on, e.g. ["CSOL", "MLTSSL"].
+    lists: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, default=list, server_default="[]"
+    )
     pathway: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
     requirements: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
     engineering_degrees: Mapped[str] = mapped_column(

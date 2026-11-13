@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Integer, String, func, text
+from sqlalchemy import Boolean, DateTime, Integer, String, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,15 +14,23 @@ if TYPE_CHECKING:
 
 class Category(Base):
     __tablename__ = "category"
+    __table_args__ = (
+        UniqueConstraint("country", "seek_classification_id"),
+        UniqueConstraint("country", "employmenthero_sector_id"),
+    )
 
     id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()")
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     slug: Mapped[str] = mapped_column(String(40), unique=True, nullable=False)
-    seek_classification_id: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    seek_classification_id: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Two-letter code from core/countries.py; the same SEEK classification id repeats per country.
+    country: Mapped[str] = mapped_column(
+        String(2), nullable=False, default="NZ", server_default="NZ"
+    )
     # Employment Hero's sector id for this category; None = not crawled there.
-    employmenthero_sector_id: Mapped[int | None] = mapped_column(Integer, unique=True)
+    employmenthero_sector_id: Mapped[int | None] = mapped_column(Integer)
     enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
     )

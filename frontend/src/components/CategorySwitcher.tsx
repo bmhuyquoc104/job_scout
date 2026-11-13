@@ -1,7 +1,6 @@
 import { MenuItem, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { getCategories } from "../api/client";
-import { useApi } from "../api/useApi";
+import { useCountry } from "../country/CountryContext";
 
 interface CategorySwitcherProps {
   categoryId: string;
@@ -12,10 +11,10 @@ interface CategorySwitcherProps {
 /** Names the current category; with several enabled categories it becomes a picker. */
 export default function CategorySwitcher({ categoryId, view }: CategorySwitcherProps) {
   const navigate = useNavigate();
-  const { data: categories } = useApi(getCategories, [], "Unable to load categories.");
+  const { countryCategories: categories } = useCountry();
   const current = categories?.find((category) => category.id === categoryId);
 
-  if (!categories || categories.length < 2) {
+  if (categories.length < 2) {
     return (
       <Typography color="primary" variant="overline" fontWeight={700} letterSpacing={1}>
         {current?.name ?? "Job category"}

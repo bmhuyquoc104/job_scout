@@ -66,7 +66,7 @@ async def test_scrape_commits_draft_before_enrichment_and_upserts_clean_job(
         assert job.nzbn == "942903"
         assert job.trading_name == "Example Trading"
         assert job.job_description == "Example teaser\n\n• Example point"
-        assert draft.status == "accredited"
+        assert draft.status == "eligible"
         first_seen_at = job.first_seen_at
 
     current["title"] = "Senior Data Engineer"
@@ -82,13 +82,13 @@ async def test_scrape_commits_draft_before_enrichment_and_upserts_clean_job(
         assert jobs[0].first_seen_at == first_seen_at
         assert jobs[0].job_description == "Updated teaser\n\n• Example point"
 
-    assert (first.fetched, first.accredited, first.failed) == (1, 1, 0)
-    assert (second.fetched, second.accredited, second.failed) == (1, 1, 0)
+    assert (first.fetched, first.eligible, first.failed) == (1, 1, 0)
+    assert (second.fetched, second.eligible, second.failed) == (1, 1, 0)
     assert "Starting SEEK discovery for Information & Communication Technology (ict)" in caplog.text
     assert "SEEK page 1 for ict: 1 listing(s) returned" in caplog.text
     assert "Discovered listing 1 (seek-1): Data Engineer" in caplog.text
     assert "Enriching listing 1/1 (seek-1): Data Engineer" in caplog.text
-    assert "Finished listing 1/1 (seek-1): accredited" in caplog.text
+    assert "Finished listing 1/1 (seek-1): eligible" in caplog.text
 
 
 async def test_run_does_not_count_exhausted_drafts_as_new_failures(

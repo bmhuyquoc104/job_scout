@@ -20,5 +20,5 @@ async def read_cv(file: UploadFile) -> CvSkills:
 async def match_cv(
     request: MatchRequest, session: Annotated[AsyncSession, Depends(get_session)]
 ) -> list[JobMatch]:
-    """Rank every open job against CV skills, so a saved CV needs no re-upload."""
-    return await service.match_jobs(session, request.skills)
+    """Rank every open job in a country against CV skills, so a saved CV needs no re-upload."""
+    return await service.match_jobs(session, request.skills, request.country)

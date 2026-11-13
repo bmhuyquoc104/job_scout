@@ -9,7 +9,9 @@ class GreenListRoleItem(BaseModel):
     title: str
     anzsco_code: str
     industry: str
-    tier: int
+    tier: int | None
+    # Australia: the official lists the role is on; empty for NZ.
+    lists: list[str]
     pathway: str
     requirements: str
     engineering_degrees: str
@@ -20,6 +22,11 @@ class GreenListRoleItem(BaseModel):
 
 
 class GreenListResponse(BaseModel):
+    country: str
+    list_name: str
+    source_name: str
+    # Roles per official list (Australia); empty for NZ, which has tiers.
+    list_counts: dict[str, int]
     synced_at: datetime | None
     tier_1: int
     tier_2: int
@@ -36,8 +43,8 @@ class GreenListChange(BaseModel):
     industry: str
     # Only for tier changes: the tier the role came from.
     from_tier: int | None = None
-    # The tier the role has (for a tier change: the tier it moved to).
-    tier: int
+    # The tier the role has (for a tier change: the tier it moved to); None without tiers.
+    tier: int | None
 
 
 class GreenListChangesResponse(BaseModel):

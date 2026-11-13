@@ -1,12 +1,12 @@
 import { lazy, Suspense } from "react";
 import { Box, LinearProgress, Typography } from "@mui/material";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Diagrams from "./pages/Diagrams";
 import JobDetailPage from "./pages/JobDetail";
 // The postings page carries the data grid, the heaviest dependency, so it loads on demand.
 const Jobs = lazy(() => import("./pages/Jobs"));
-const GreenList = lazy(() => import("./pages/GreenList"));
+const Immigration = lazy(() => import("./pages/Immigration"));
 const CvUpload = lazy(() => import("./pages/CvUpload"));
 const RecommendedJobs = lazy(() => import("./pages/RecommendedJobs"));
 
@@ -17,7 +17,8 @@ export default function AppRoutes() {
       <Route path="/" element={<Dashboard />} />
       <Route path="/categories/:categoryId" element={<Jobs />} />
       <Route path="/categories/:categoryId/diagrams" element={<Diagrams />} />
-      <Route path="/green-list" element={<GreenList />} />
+      <Route path="/immigration" element={<Immigration />} />
+      <Route path="/green-list" element={<Navigate to="/immigration" replace />} />
       <Route path="/cv" element={<CvUpload />} />
       <Route path="/recommended-jobs" element={<RecommendedJobs />} />
       <Route path="/jobs/:jobId" element={<JobDetailPage />} />

@@ -32,12 +32,9 @@ jobs:
         env:
           SOURCE: ${{ matrix.source }}
         run: |
-          case "$SOURCE" in
-            # Indeed searches "IT" and saves under one category. Glassdoor blocks GitHub's IPs, so it
-            # runs locally through Airflow only.
-            indeed) cats=ict ;;
-            *) cats=$(uv run python -c "import asyncio; from job_scout.scraper.phases import enabled_category_slugs as e; print(*asyncio.run(e(None, '$SOURCE')))") ;;
-          esac
+          # Indeed searches "IT" and saves under each enabled country's ICT category. Glassdoor
+          # blocks GitHub's IPs, so it runs locally through Airflow only.
+          cats=$(uv run python -c "import asyncio; from job_scout.scraper.phases import enabled_category_slugs as e; print(*asyncio.run(e(None, '$SOURCE')))")
           fail=0
           for cat in $cats; do
             uv run job_scout_scrape --category "$cat" --source "$SOURCE" || fail=1

@@ -1,4 +1,6 @@
-"""Employment Hero's public NZ job board: plain HTML pages with schema.org `JobPosting` data.
+"""Employment Hero's public job boards (NZ under /nz/, Australia unprefixed).
+
+Plain HTML pages with schema.org `JobPosting` data.
 
 Only the job pages are read (never the site's /wp-json API, which robots.txt disallows).
 """
@@ -18,7 +20,13 @@ from job_scout.scraper.normalization import NormalizedListing, get_pay_period
 BASE_URL = "https://employmenthero.com"
 USER_AGENT = "job-scout-personal/0.1"
 MAX_ATTEMPTS = 3
-_SLUG = re.compile(r'href="(?:https://employmenthero\.com)?/nz/jobs/position/([^"#?/]+)')
+# New Zealand's board lives under /nz/; Australia's is at the root, so the "/jobs/" must follow
+# the host directly or an NZ link would be picked up as an Australian one.
+_SLUGS = {
+    "NZ": re.compile(r'href="(?:https://employmenthero\.com)?/nz/jobs/position/([^"#?/]+)'),
+    "AU": re.compile(r'href="(?:https://employmenthero\.com)?/jobs/position/([^"#?/]+)'),
+}
+_BOARD_PATHS = {"NZ": "/nz/jobs/", "AU": "/jobs/"}
 _JSON_LD = re.compile(r"application/ld\+json[^>]*>(.*?)</script>", re.DOTALL)
 _WORK_TYPES = {
     "FULL_TIME": "Full time",
@@ -51,15 +59,17 @@ async def _get(http: httpx.AsyncClient, url: str, params: dict[str, str] | None 
     raise AssertionError("unreachable")
 
 
-async def fetch_list_page(http: httpx.AsyncClient, sector_id: int, page: int) -> str:
-    params = {"country_code": "NZ", "job_sector_ids": str(sector_id), "page": str(page)}
-    return await _get(http, f"{BASE_URL}/nz/jobs/", params)
+async def fetch_list_page(
+    http: httpx.AsyncClient, sector_id: int, page: int, country: str = "NZ"
+) -> str:
+    params = {"country_code": country, "job_sector_ids": str(sector_id), "page": str(page)}
+    return await _get(http, f"{BASE_URL}{_BOARD_PATHS[country]}", params)
 
 
-async def fetch_job_page(http: httpx.AsyncClient, slug: str) -> str | None:
+async def fetch_job_page(http: httpx.AsyncClient, slug: str, country: str = "NZ") -> str | None:
     """The job page, or None if it 404s (taken down since it was listed)."""
     try:
-        return await _get(http, job_url(slug))
+        return await _get(http, job_url(slug, country))
     except AppError as exc:
         if (
             isinstance(exc.__cause__, httpx.HTTPStatusError)
@@ -69,15 +79,15 @@ async def fetch_job_page(http: httpx.AsyncClient, slug: str) -> str | None:
         raise
 
 
-def job_url(slug: str) -> str:
-    return f"{BASE_URL}/nz/jobs/position/{slug}/"
+def job_url(slug: str, country: str = "NZ") -> str:
+    return f"{BASE_URL}{_BOARD_PATHS[country]}position/{slug}/"
 
 
-def parse_job_slugs(page_html: str) -> list[str]:
-    return list(dict.fromkeys(_SLUG.findall(page_html)))
+def parse_job_slugs(page_html: str, country: str = "NZ") -> list[str]:
+    return list(dict.fromkeys(_SLUGS[country].findall(page_html)))
 
 
-def parse_job_posting(page_html: str, slug: str) -> dict[str, Any]:
+def parse_job_posting(page_html: str, slug: str, country: str = "NZ") -> dict[str, Any]:
     """The page's JobPosting, plus our `id` (the URL slug) and `url`."""
     for block in _JSON_LD.findall(page_html):
         try:
@@ -86,7 +96,7 @@ def parse_job_posting(page_html: str, slug: str) -> dict[str, Any]:
             continue
         for item in data if isinstance(data, list) else [data]:
             if isinstance(item, dict) and item.get("@type") == "JobPosting":
-                return {**item, "id": slug, "url": job_url(slug)}
+                return {**item, "id": slug, "url": job_url(slug, country)}
     raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, f"No JobPosting on Employment Hero page {slug}")
 
 

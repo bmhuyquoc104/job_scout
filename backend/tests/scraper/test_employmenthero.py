@@ -101,11 +101,11 @@ def eh_site(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     """Fake Employment Hero: pages by number (1-based) and job pages by slug."""
     site: dict[str, str] = {}
 
-    async def fetch_list(_: httpx.AsyncClient, sector_id: int, page: int) -> str:
+    async def fetch_list(_: httpx.AsyncClient, sector_id: int, page: int, country: str) -> str:
         assert sector_id == 18
         return site.get(f"page{page}", "<html></html>")
 
-    async def fetch_job(_: httpx.AsyncClient, slug: str) -> str:
+    async def fetch_job(_: httpx.AsyncClient, slug: str, country: str) -> str:
         if slug not in site:
             raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "boom")
         return site[slug]
@@ -157,7 +157,7 @@ async def test_discovery_skips_a_job_that_was_taken_down_after_listing(
     factory, category_id = scrape_db
     eh_site.update(page1=list_page("job-a", "job-gone"), **{"job-a": job_page()})
 
-    async def fetch_job(_: httpx.AsyncClient, slug: str) -> str | None:
+    async def fetch_job(_: httpx.AsyncClient, slug: str, country: str) -> str | None:
         return eh_site.get(slug)  # None = the page 404s
 
     monkeypatch.setattr(employmenthero, "fetch_job_page", fetch_job)
@@ -200,7 +200,7 @@ async def test_full_run_promotes_only_accredited_employers(
     ]
     assert jobs[0].job_description.startswith("About")
     assert jobs[0].url == "https://employmenthero.com/nz/jobs/position/ok-job/"
-    assert (summary.accredited, summary.not_accredited, summary.failed) == (1, 1, 0)
+    assert (summary.eligible, summary.ineligible, summary.failed) == (1, 1, 0)
 
 
 async def test_reconcile_only_closes_jobs_from_its_own_source(
@@ -251,3 +251,33 @@ async def test_a_seek_draft_with_the_same_id_does_not_count_as_seen_for_employme
     async with factory() as session:
         job = await session.scalar(select(Job))
     assert job is not None and job.is_active is False
+
+
+async def test_australian_list_page_is_read_from_the_unprefixed_board() -> None:
+    requests: list[httpx.Request] = []
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, text="<html></html>")
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as http:
+        await employmenthero.fetch_list_page(http, 18, 2, "AU")
+        await employmenthero.fetch_list_page(http, 18, 2, "NZ")
+
+    assert requests[0].url.path == "/jobs/"
+    assert requests[0].url.params["country_code"] == "AU"
+    assert requests[1].url.path == "/nz/jobs/"
+    assert requests[1].url.params["country_code"] == "NZ"
+
+
+def test_each_country_only_picks_up_its_own_job_links() -> None:
+    page = (
+        '<a href="https://employmenthero.com/jobs/position/au-job/">a</a>'
+        '<a href="/nz/jobs/position/nz-job/">b</a>'
+    )
+
+    assert employmenthero.parse_job_slugs(page, "AU") == ["au-job"]
+    assert employmenthero.parse_job_slugs(page, "NZ") == ["nz-job"]
+    assert (
+        employmenthero.job_url("au-job", "AU") == "https://employmenthero.com/jobs/position/au-job/"
+    )

@@ -63,8 +63,13 @@ export default function JobDetailPage() {
               <Box><Typography component="dt" variant="overline" color="text.secondary">Pay period</Typography><Typography component="dd" sx={{ m: 0 }}>{job.pay_period || "Not listed"}</Typography></Box>
               <Box><Typography component="dt" variant="overline" color="text.secondary">Work arrangement</Typography><Typography component="dd" sx={{ m: 0 }}>{job.work_arrangements.join(", ") || "Not listed"}</Typography></Box>
               <Box><Typography component="dt" variant="overline" color="text.secondary">Work type</Typography><Typography component="dd" sx={{ m: 0 }}>{job.work_types.join(", ") || "Not listed"}</Typography></Box>
+              {/* Both come from the Immigration NZ lookup, so they are empty for other countries. */}
+              {(job.nzbn || job.trading_name) && (
+              <>
               <Box><Typography component="dt" variant="overline" color="text.secondary">NZBN</Typography><Typography component="dd" sx={{ m: 0 }}>{job.nzbn || "Not listed"}</Typography></Box>
               <Box><Typography component="dt" variant="overline" color="text.secondary">Trading name</Typography><Typography component="dd" sx={{ m: 0, overflowWrap: "anywhere" }}>{job.trading_name || "Not listed"}</Typography></Box>
+              </>
+              )}
             </Stack>
           </Paper>
         </Box>

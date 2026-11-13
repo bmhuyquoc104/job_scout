@@ -1,7 +1,9 @@
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, field_validator
+
+from job_scout.core.countries import COUNTRIES
 
 
 class JobMatch(BaseModel):
@@ -26,3 +28,11 @@ class MatchRequest(BaseModel):
     skills: list[Annotated[str, StringConstraints(min_length=1, max_length=30)]] = Field(
         min_length=1, max_length=5000
     )
+    country: str = "NZ"  # only this country's open jobs are ranked
+
+    @field_validator("country")
+    @classmethod
+    def _known_country(cls, value: str) -> str:
+        if value not in COUNTRIES:
+            raise ValueError("unknown country")
+        return value

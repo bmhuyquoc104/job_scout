@@ -1,11 +1,9 @@
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import { getCategories } from "../api/client";
-import { useApi } from "../api/useApi";
+import { useCountry } from "../country/CountryContext";
 
 export default function Dashboard() {
-  const { data, error, loading } = useApi(getCategories, [], "Unable to load categories.");
-  const categories = data ?? [];
+  const { countryCategories: categories, countries, country, setCountry, error, loading } = useCountry();
 
   return (
     <Box component="main" sx={{ flex: 1, minHeight: 0, p: 3, overflow: "auto" }}>
@@ -15,6 +13,23 @@ export default function Dashboard() {
       <Typography component="h1" variant="h4" sx={{ mt: 0.5, mb: 2.25, fontSize: 24, fontWeight: 700 }}>
         Job categories
       </Typography>
+      {countries.length > 1 && (
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          color="primary"
+          value={country}
+          aria-label="Country"
+          onChange={(_, next: string | null) => next && setCountry(next)}
+          sx={{ mb: 2.25 }}
+        >
+          {countries.map((option) => (
+            <ToggleButton key={option.code} value={option.code} sx={{ textTransform: "none", px: 2 }}>
+              {option.name}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      )}
       {loading && <CircularProgress aria-label="Loading categories" size={24} />}
       {error && <Alert severity="error">{error}</Alert>}
       {!loading && !error && categories.length === 0 && (

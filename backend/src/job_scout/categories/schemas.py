@@ -8,4 +8,6 @@ class CategoryItem(BaseModel):
     name: str
     slug: str
     seek_classification_id: str
+    country: str
+    country_name: str
     active_job_count: int

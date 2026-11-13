@@ -29,7 +29,7 @@ class JobDraft(Base):
         ),
         UniqueConstraint("category_id", "source", "external_id"),
         CheckConstraint(
-            "status IN ('pending', 'accredited', 'not_accredited', 'failed')",
+            "status IN ('pending', 'eligible', 'ineligible', 'failed')",
             name="valid_status",
         ),
     )

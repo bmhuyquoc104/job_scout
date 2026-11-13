@@ -125,10 +125,12 @@ async def discover_employmenthero(
         async with employmenthero.client() as http:
             for page_number in range(1, MAX_EMPLOYMENTHERO_PAGES + 1):
                 page_html = await employmenthero.fetch_list_page(
-                    http, category.employmenthero_sector_id, page_number
+                    http, category.employmenthero_sector_id, page_number, category.country
                 )
                 slugs = [
-                    slug for slug in employmenthero.parse_job_slugs(page_html) if slug not in seen
+                    slug
+                    for slug in employmenthero.parse_job_slugs(page_html, category.country)
+                    if slug not in seen
                 ]
                 if not slugs:
                     if page_number == 1:
@@ -140,11 +142,11 @@ async def discover_employmenthero(
                 rows: list[tuple[str, dict[str, Any]]] = []
                 for slug in slugs:
                     await asyncio.sleep(EMPLOYMENTHERO_DELAY)
-                    job_html = await employmenthero.fetch_job_page(http, slug)
+                    job_html = await employmenthero.fetch_job_page(http, slug, category.country)
                     if job_html is None:
                         logger.info("Employment Hero job %s is gone; skipping", slug)
                         continue
-                    payload = employmenthero.parse_job_posting(job_html, slug)
+                    payload = employmenthero.parse_job_posting(job_html, slug, category.country)
                     rows.append((slug, payload))
                 seen.update(slugs)
                 await save_drafts(session_factory, category_id, rows, source="employmenthero")
@@ -188,8 +190,8 @@ async def discover_job_board(
     seen: set[str] = set()
     first_page = True
     try:
-        async with board.client() as http:
-            async for page in board.pages(http):
+        async with board.client(category.country) as http:
+            async for page in board.pages(http, category.country):
                 rows: list[tuple[str, dict[str, Any]]] = []
                 for payload in page:
                     if payload["id"] not in seen:

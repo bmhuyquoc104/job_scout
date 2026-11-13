@@ -128,7 +128,7 @@ def test_glassdoor_build_description_turns_html_into_readable_text() -> None:
 
 
 def fake_pages(*pages: list[dict[str, Any]], fail_after: int | None = None) -> Any:
-    async def pages_gen(_: object) -> AsyncIterator[list[dict[str, Any]]]:
+    async def pages_gen(_: object, __: str) -> AsyncIterator[list[dict[str, Any]]]:
         for number, page in enumerate(pages):
             if fail_after is not None and number >= fail_after:
                 raise AppError(discovery.ErrorCode.SCRAPE_SOURCE_ERROR, "boom")
@@ -147,8 +147,8 @@ class _NoClient:
 
 @pytest.fixture(autouse=True)
 def no_real_clients(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(indeed, "client", lambda: _NoClient())
-    monkeypatch.setattr(glassdoor, "client", lambda: _NoClient())
+    monkeypatch.setattr(indeed, "client", lambda country: _NoClient())
+    monkeypatch.setattr(glassdoor, "client", lambda country: _NoClient())
 
     async def no_sleep(_: float) -> None:
         return None
@@ -198,3 +198,19 @@ async def test_discovery_fails_closed_when_the_first_page_has_no_jobs(
 
     with pytest.raises(AppError):
         await discovery.discover_job_board(factory, category_id, "glassdoor")
+
+
+def test_indeed_links_and_search_follow_the_country() -> None:
+    data = {"data": {"jobSearch": {"results": [{"job": INDEED_JOB}]}}}
+
+    payloads, _ = indeed.parse_search(data, "AU")
+
+    assert payloads[0]["url"] == "https://au.indeed.com/viewjob?jk=abc123"
+    assert '"Australia"' in indeed.build_query(None, "AU")
+    assert '"New Zealand"' in indeed.build_query(None)
+
+
+def test_glassdoor_links_follow_the_country() -> None:
+    payload = glassdoor.parse_listing(GLASSDOOR_LISTING, date(2026, 11, 7), "AU")
+
+    assert payload["url"].startswith("https://www.glassdoor.com.au/job-listing/j?jl=")

@@ -15,7 +15,17 @@ def roles(*specs: tuple[str, str, str]):
 async def test_an_empty_table_returns_zeros(green_api: AsyncClient) -> None:
     body = (await green_api.get("/api/green-list")).json()
 
-    assert body == {"synced_at": None, "tier_1": 0, "tier_2": 0, "total": 0, "roles": []}
+    assert body == {
+        "country": "NZ",
+        "list_name": "Green List",
+        "source_name": "Immigration New Zealand",
+        "list_counts": {},
+        "synced_at": None,
+        "tier_1": 0,
+        "tier_2": 0,
+        "total": 0,
+        "roles": [],
+    }
     assert (await green_api.get("/api/green-list/changes")).json() == {"changes": []}
 
 

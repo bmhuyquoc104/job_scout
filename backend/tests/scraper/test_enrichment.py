@@ -6,7 +6,7 @@ from typing import Any
 from uuid import UUID
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from job_scout.categories.models import Category
@@ -52,10 +52,10 @@ async def test_unchanged_seek_payload_is_not_reenriched(
     async with factory() as session:
         drafts = (await session.scalars(select(JobDraft))).all()
         assert len(drafts) == 1
-        assert drafts[0].status == "not_accredited"
+        assert drafts[0].status == "ineligible"
     assert (description_calls, accreditation_calls) == (0, 1)
     assert second.fetched == 1
-    assert second.not_accredited == 1
+    assert second.ineligible == 1
 
 
 async def test_enrichment_retries_failed_drafts_but_skips_completed_drafts(
@@ -78,7 +78,7 @@ async def test_enrichment_retries_failed_drafts_but_skips_completed_drafts(
                     category_id=category_id,
                     external_id="already-done",
                     raw_payload=source_listing("already-done"),
-                    status="not_accredited",
+                    status="ineligible",
                 ),
             ]
         )
@@ -99,10 +99,10 @@ async def test_enrichment_retries_failed_drafts_but_skips_completed_drafts(
     async with factory() as session:
         retry = await session.scalar(select(JobDraft).where(JobDraft.external_id == "retry-this"))
         done = await session.scalar(select(JobDraft).where(JobDraft.external_id == "already-done"))
-        assert retry is not None and retry.status == "not_accredited"
-        assert done is not None and done.status == "not_accredited"
+        assert retry is not None and retry.status == "ineligible"
+        assert done is not None and done.status == "ineligible"
     assert descriptions == []
-    assert (summary.fetched, summary.not_accredited) == (1, 1)
+    assert (summary.fetched, summary.ineligible) == (1, 1)
 
 
 async def test_non_accredited_result_preserves_existing_clean_job(
@@ -144,8 +144,8 @@ async def test_non_accredited_result_preserves_existing_clean_job(
         assert job.position == "Existing job"
         assert job.job_description == "Old description"
         assert job.is_active is True
-        assert draft.status == "not_accredited"
-    assert (summary.not_accredited, summary.accredited) == (1, 0)
+        assert draft.status == "ineligible"
+    assert (summary.ineligible, summary.eligible) == (1, 0)
 
 
 async def test_exhausted_accreditation_retries_are_recorded_as_failure(
@@ -190,7 +190,7 @@ async def test_exhausted_accreditation_retries_are_recorded_as_failure(
         assert draft.status == "failed"
         assert draft.error_code == "scrape_source_error"
     assert summary.failed == 1
-    assert summary.not_accredited == 0
+    assert summary.ineligible == 0
 
 
 async def test_bad_immigration_payload_is_recorded_and_does_not_overwrite_job(
@@ -346,7 +346,7 @@ async def test_drafts_that_exhausted_their_attempts_are_not_retried(
     async with factory() as session:
         done = await session.scalar(select(JobDraft).where(JobDraft.external_id == "retry"))
         stuck = await session.scalar(select(JobDraft).where(JobDraft.external_id == "exhausted"))
-        assert done is not None and done.status == "not_accredited"
+        assert done is not None and done.status == "ineligible"
         assert stuck is not None and (stuck.status, stuck.attempts) == ("failed", 3)
 
 
@@ -388,7 +388,7 @@ async def test_same_company_is_looked_up_once_per_run(
     summary = await enrichment.enrich(factory, category_id)
 
     assert looked_up == ["Example Company"]
-    assert (summary.fetched, summary.accredited, summary.failed) == (2, 2, 0)
+    assert (summary.fetched, summary.eligible, summary.failed) == (2, 2, 0)
 
 
 async def test_failed_lookup_is_not_cached_for_the_same_company(
@@ -415,7 +415,7 @@ async def test_failed_lookup_is_not_cached_for_the_same_company(
     summary = await enrichment.enrich(factory, category_id)
 
     assert len(looked_up) == 2
-    assert (summary.failed, summary.not_accredited) == (1, 1)
+    assert (summary.failed, summary.ineligible) == (1, 1)
 
 
 async def test_accredited_job_description_comes_from_the_search_result(
@@ -431,7 +431,7 @@ async def test_accredited_job_description_comes_from_the_search_result(
 
     draft, job = await scrape_one(scrape_db, monkeypatch, listing=listing, accredited=True)
 
-    assert draft.status == "accredited"
+    assert draft.status == "eligible"
     assert job is not None
     assert job.job_description == "Short teaser\n\n• First point\n• Second point"
 
@@ -441,7 +441,7 @@ async def test_accredited_seek_job_gets_the_full_description(
     fake_browser: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def full(_: object, __: str) -> str:
+    async def full(_: object, __: str, ___: str) -> str:
         return "Full ad text"
 
     monkeypatch.setattr(seek_client, "fetch_description", full)
@@ -457,7 +457,7 @@ async def test_seek_job_keeps_the_teaser_when_the_full_description_fails(
     fake_browser: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def blocked(_: object, __: str) -> str:
+    async def blocked(_: object, __: str, ___: str) -> str:
         raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "blocked")
 
     monkeypatch.setattr(seek_client, "fetch_description", blocked)
@@ -466,3 +466,57 @@ async def test_seek_job_keeps_the_teaser_when_the_full_description_fails(
     )
 
     assert job is not None and job.job_description != "Full ad text" and job.job_description
+
+
+async def test_listing_in_a_country_without_an_employer_check_is_promoted_without_one(
+    scrape_db: tuple[async_sessionmaker[AsyncSession], UUID],
+    fake_browser: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    factory, _ = scrape_db
+    async with factory() as session:
+        au = await session.scalar(select(Category).where(Category.slug == "ict-au"))
+        assert au is not None
+        au.enabled = True
+        session.add(
+            JobDraft(
+                category_id=au.id,
+                external_id="au-1",
+                raw_payload=source_listing("au-1"),
+                status="pending",
+            )
+        )
+        await session.commit()
+        au_id = au.id
+
+    async def no_sleep(_: float) -> None:
+        return None
+
+    async def never_called(*_: object) -> None:
+        raise AssertionError("Immigration NZ must not be asked about an Australian listing")
+
+    countries: list[str] = []
+
+    async def full(_: object, __: str, country: str) -> str:
+        countries.append(country)
+        return "Full Australian ad"
+
+    monkeypatch.setattr(asyncio, "sleep", no_sleep)
+    monkeypatch.setattr(immigration_client, "check_accreditation", never_called)
+    monkeypatch.setattr(enrichment, "async_playwright", never_called, raising=False)
+    monkeypatch.setattr(seek_client, "fetch_description", full)
+
+    try:
+        summary = await enrichment.enrich(factory, au_id)
+    finally:  # the test database is shared, so leave the category off for other tests
+        async with factory() as session, session.begin():
+            await session.execute(
+                update(Category).where(Category.id == au_id).values(enabled=False)
+            )
+
+    async with factory() as session:
+        job = await session.scalar(select(Job).where(Job.external_id == "au-1"))
+    assert summary.eligible == 1
+    assert job is not None and job.category_id == au_id
+    assert job.url == "https://www.seek.com.au/job/au-1"
+    assert job.job_description == "Full Australian ad" and countries == ["AU"]

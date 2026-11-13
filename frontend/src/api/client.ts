@@ -73,12 +73,13 @@ export function getLocations(categoryId: string): Promise<LocationBreakdown> {
   return get(`/api/categories/${categoryId}/stats/locations`);
 }
 
-export function getGreenList(): Promise<GreenListResponse> {
-  return get("/api/green-list");
+/** A country's priority-occupation list (NZ: the Green List; AU: the skilled occupation lists). */
+export function getGreenList(country: string): Promise<GreenListResponse> {
+  return get(`/api/green-list?country=${country}`);
 }
 
-export function getGreenListChanges(days: number): Promise<GreenListChangesResponse> {
-  return get(`/api/green-list/changes?days=${days}`);
+export function getGreenListChanges(days: number, country: string): Promise<GreenListChangesResponse> {
+  return get(`/api/green-list/changes?days=${days}&country=${country}`);
 }
 
 export function getJobFacets(categoryId: string): Promise<JobFacets> {
@@ -96,13 +97,13 @@ export async function uploadCv(file: File): Promise<string[]> {
   return (await parse<CvSkills>(await fetch("/api/cv", { method: "POST", body }))).skills;
 }
 
-/** Every open job ranked against the CV skills, best first. */
-export async function getMatches(skills: string[]): Promise<JobMatch[]> {
+/** Every open job in a country ranked against the CV skills, best first. */
+export async function getMatches(skills: string[], country: string): Promise<JobMatch[]> {
   return parse(
     await fetch("/api/matches", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ skills }),
+      body: JSON.stringify({ skills, country }),
     }),
   );
 }

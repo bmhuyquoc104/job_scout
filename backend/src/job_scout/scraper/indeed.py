@@ -1,4 +1,4 @@
-"""Indeed NZ via the GraphQL API that Indeed's own mobile app uses (the approach JobSpy takes).
+"""Indeed (one country per run) via the GraphQL API its own mobile app uses (as JobSpy does).
 
 The API key is the app's, supplied through settings; it can be rotated by Indeed at any time.
 """
@@ -11,27 +11,22 @@ from typing import Any
 from curl_cffi.requests import AsyncSession
 
 from job_scout.config import settings
+from job_scout.core.countries import COUNTRIES
 from job_scout.core.errors import AppError, ErrorCode
 from job_scout.scraper import chrome_http, employmenthero
 from job_scout.scraper.normalization import NormalizedListing, get_pay_period
 
-BASE_URL = "https://nz.indeed.com"
 API_URL = "https://apis.indeed.com/graphql"
 SEARCH_TERM = "IT"
-LOCATION = (
-    "New Zealand"  # shortcut: untested as a nationwide `where`; use cities if it under-returns.
-)
+# shortcut: the country name as a nationwide `where` is untested; use cities if it under-returns.
 PAGE_SIZE = 100
 MAX_PAGES = 20
 _HEADERS = {
     "content-type": "application/json",
     "accept": "application/json",
-    "accept-language": "en-NZ,en;q=0.9",
     "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6_1 like Mac OS X) AppleWebKit/605.1.15 "
     "(KHTML, like Gecko) Mobile/15E148 Indeed App 193.1",
     "indeed-app-info": "appv=193.1; appid=com.indeed.jobsearch; osv=16.6.1; os=ios; dtype=phone",
-    "indeed-co": "NZ",
-    "indeed-locale": "en-NZ",
 }
 _WORK_TYPES = {
     "CF3CP": "Full time",
@@ -134,42 +129,58 @@ _QUERY = """
 """
 
 
-def client() -> AsyncSession:
+def client(country: str = "NZ") -> AsyncSession:
     if not settings.indeed_api_key:
         raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "INDEED_API_KEY is not set")
-    return chrome_http.client({**_HEADERS, "indeed-api-key": settings.indeed_api_key})
+    locale = COUNTRIES[country].seek_locale  # Indeed uses the same en-XX locale names
+    return chrome_http.client(
+        {
+            **_HEADERS,
+            "accept-language": f"{locale},en;q=0.9",
+            "indeed-co": country,
+            "indeed-locale": locale,
+            "indeed-api-key": settings.indeed_api_key,
+        }
+    )
 
 
-def build_query(cursor: str | None) -> str:
+def build_query(cursor: str | None, country: str = "NZ") -> str:
+    place = json.dumps(COUNTRIES[country].search_place)
     return _QUERY.format(
         what=f"what: {json.dumps(SEARCH_TERM)}",
-        location=f"location: {{where: {json.dumps(LOCATION)}, radius: 50, radiusUnit: MILES}}",
+        location=f"location: {{where: {place}, radius: 50, radiusUnit: MILES}}",
         limit=PAGE_SIZE,
         cursor=f"cursor: {json.dumps(cursor)}" if cursor else "",
         filters="",
     )
 
 
-def parse_search(data: dict[str, Any]) -> tuple[list[dict[str, Any]], str | None]:
+def parse_search(
+    data: dict[str, Any], country: str = "NZ"
+) -> tuple[list[dict[str, Any]], str | None]:
     """The page's jobs (each given our `id` and `url`) and the next-page cursor, if any."""
     search = (data.get("data") or {}).get("jobSearch")
     if not search:
         raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, f"Indeed API error: {data.get('errors')}")
     payloads = [
-        {**job, "id": job["key"], "url": f"{BASE_URL}/viewjob?jk={job['key']}"}
+        {
+            **job,
+            "id": job["key"],
+            "url": f"https://{COUNTRIES[country].indeed_host}/viewjob?jk={job['key']}",
+        }
         for result in search.get("results") or []
         if (job := result.get("job"))
     ]
     return payloads, (search.get("pageInfo") or {}).get("nextCursor")
 
 
-async def pages(http: AsyncSession) -> AsyncIterator[list[dict[str, Any]]]:
+async def pages(http: AsyncSession, country: str = "NZ") -> AsyncIterator[list[dict[str, Any]]]:
     cursor: str | None = None
     for _ in range(MAX_PAGES):
         response = await chrome_http.request(
-            http, "POST", API_URL, json={"query": build_query(cursor)}
+            http, "POST", API_URL, json={"query": build_query(cursor, country)}
         )
-        payloads, cursor = parse_search(response.json())
+        payloads, cursor = parse_search(response.json(), country)
         yield payloads
         if not payloads or not cursor:
             return

@@ -16,6 +16,8 @@ async def test_categories_returns_enabled_category_with_active_job_count(
             "id": str(category.id),
             "name": "Information & Communication Technology",
             "slug": "ict",
+            "country": "NZ",
+            "country_name": "New Zealand",
             "seek_classification_id": "6281",
             "active_job_count": 2,
         }

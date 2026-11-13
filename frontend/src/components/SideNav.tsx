@@ -14,8 +14,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { Link as RouterLink, useLocation, useMatch } from "react-router-dom";
-import { getCategories } from "../api/client";
-import { useApi } from "../api/useApi";
+import { useCountry } from "../country/CountryContext";
 
 const COLLAPSED = 64;
 const EXPANDED = 220;
@@ -43,10 +42,10 @@ export default function SideNav() {
   const wide = useMediaQuery(theme.breakpoints.up("md"));
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
-  const { data: categories } = useApi(getCategories, [], "Unable to load categories.");
+  const { countryCategories } = useCountry();
 
   // Inside a category use that one; elsewhere (dashboard, job detail) fall back to the first.
-  const categoryId = useMatch("/categories/:categoryId/*")?.params.categoryId ?? categories?.[0]?.id;
+  const categoryId = useMatch("/categories/:categoryId/*")?.params.categoryId ?? countryCategories[0]?.id;
   const items = [
     {
       label: "Job postings",
@@ -57,8 +56,8 @@ export default function SideNav() {
     { label: "Diagrams", icon: BAR_CHART, to: `/categories/${categoryId}/diagrams`, selected: pathname.endsWith("/diagrams") },
     { label: "My CV", icon: DESCRIPTION, to: "/cv", selected: pathname === "/cv", standalone: true },
     { label: "Recommended", icon: STAR, to: "/recommended-jobs", selected: pathname === "/recommended-jobs", standalone: true },
-    // Immigration NZ's list is not tied to a job category.
-    { label: "Green List", icon: CHECK_CIRCLE, to: "/green-list", selected: pathname.startsWith("/green-list"), standalone: true },
+    // Each country's priority-occupation list is not tied to a job category.
+    { label: "Immigration", icon: CHECK_CIRCLE, to: "/immigration", selected: pathname.startsWith("/immigration"), standalone: true },
   ];
 
   // The names stay in the DOM (just invisible while collapsed) so links keep their accessible names.
