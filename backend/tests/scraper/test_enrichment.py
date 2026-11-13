@@ -434,3 +434,35 @@ async def test_accredited_job_description_comes_from_the_search_result(
     assert draft.status == "accredited"
     assert job is not None
     assert job.job_description == "Short teaser\n\n• First point\n• Second point"
+
+
+async def test_accredited_seek_job_gets_the_full_description(
+    scrape_db: tuple[async_sessionmaker[AsyncSession], UUID],
+    fake_browser: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def full(_: object, __: str) -> str:
+        return "Full ad text"
+
+    monkeypatch.setattr(seek_client, "fetch_description", full)
+    _, job = await scrape_one(
+        scrape_db, monkeypatch, listing=source_listing("seek-full"), accredited=True
+    )
+
+    assert job is not None and job.job_description == "Full ad text"
+
+
+async def test_seek_job_keeps_the_teaser_when_the_full_description_fails(
+    scrape_db: tuple[async_sessionmaker[AsyncSession], UUID],
+    fake_browser: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def blocked(_: object, __: str) -> str:
+        raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "blocked")
+
+    monkeypatch.setattr(seek_client, "fetch_description", blocked)
+    _, job = await scrape_one(
+        scrape_db, monkeypatch, listing=source_listing("seek-teaser"), accredited=True
+    )
+
+    assert job is not None and job.job_description != "Full ad text" and job.job_description

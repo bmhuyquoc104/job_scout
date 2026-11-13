@@ -2,12 +2,22 @@ import asyncio
 from typing import Any
 
 import httpx
+from curl_cffi.requests import AsyncSession
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError, model_validator
 
 from job_scout.categories.models import Category
 from job_scout.core.errors import AppError, ErrorCode
+from job_scout.scraper import chrome_http
+from job_scout.scraper.employmenthero import build_description
 
 SEEK_SEARCH_URL = "https://www.seek.co.nz/api/jobsearch/v5/search"
+GRAPHQL_URL = "https://www.seek.co.nz/graphql"
+DETAIL_QUERY = "query($id: ID!){ jobDetails(id:$id){ job{ content(platform: WEB) } } }"
+DETAIL_HEADERS = {
+    "seek-request-brand": "seek",
+    "seek-request-country": "NZ",
+    "x-seek-site": "chalice",
+}
 MAX_ATTEMPTS = 3
 
 
@@ -63,3 +73,17 @@ async def fetch_search_page(
     if not isinstance(payload, dict):
         raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "SEEK search response is not an object")
     return payload
+
+
+async def fetch_description(http: AsyncSession, external_id: str) -> str | None:
+    """Plain-text description, or None when SEEK has no content for the job (taken down)."""
+    response = await chrome_http.request(
+        http,
+        "POST",
+        GRAPHQL_URL,
+        json={"query": DETAIL_QUERY, "variables": {"id": external_id}},
+        headers=DETAIL_HEADERS,
+    )
+    payload: Any = response.json()
+    job = ((payload.get("data") or {}).get("jobDetails") or {}).get("job") or {}
+    return build_description({"description": job.get("content")}) or None

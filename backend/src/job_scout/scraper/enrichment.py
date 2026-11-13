@@ -3,13 +3,21 @@ import logging
 from typing import Any
 from uuid import UUID
 
+from curl_cffi.requests import AsyncSession as HttpSession
 from playwright.async_api import Page, async_playwright
 from pydantic import ValidationError
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from job_scout.core.errors import AppError, ErrorCode
-from job_scout.scraper import employmenthero, glassdoor, immigration_client, indeed
+from job_scout.scraper import (
+    chrome_http,
+    employmenthero,
+    glassdoor,
+    immigration_client,
+    indeed,
+    seek_client,
+)
 from job_scout.scraper.immigration_client import extract_immigration_fields
 from job_scout.scraper.models import JobDraft
 from job_scout.scraper.normalization import (
@@ -31,6 +39,15 @@ SOURCES = {
 MAX_ENRICH_ATTEMPTS = 3  # failed drafts are retried this many times, then left for a payload change
 
 
+async def _full_seek_description(http: HttpSession, external_id: str) -> str | None:
+    """The full ad, or None to keep the search teaser (a missing description never fails a job)."""
+    try:
+        return await seek_client.fetch_description(http, external_id)
+    except AppError as exc:
+        logger.warning("SEEK %s: full description unavailable, using teaser: %s", external_id, exc)
+        return None
+
+
 async def process_listing(
     session_factory: async_sessionmaker[AsyncSession],
     category_id: UUID,
@@ -39,6 +56,7 @@ async def process_listing(
     immigration_page: Page,
     accreditation_cache: dict[str, dict[str, Any]],
     source: str = "seek",
+    seek_http: HttpSession | None = None,
 ) -> str:
     normalize, describe = SOURCES[source]
     if payload.get("id") is None or str(payload.get("id")) == "":
@@ -68,6 +86,8 @@ async def process_listing(
         if accredited:
             fields = extract_immigration_fields(immigration_result)
             description = describe(payload)
+            if seek_http is not None:
+                description = await _full_seek_description(seek_http, external_id) or description
             if not description:
                 raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "Listing has no description")
         enriched_data = {
@@ -151,6 +171,7 @@ async def enrich(
         return summary
 
     logger.info("Starting enrichment for %s: %d pending draft(s)", category.slug, len(drafts))
+    seek_http = chrome_http.client() if source == "seek" else None
     try:
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch(headless=True)
@@ -175,6 +196,7 @@ async def enrich(
                         immigration_page,
                         accreditation_cache,
                         source,
+                        seek_http,
                     )
                     if outcome == "accredited":
                         summary.accredited += 1
@@ -192,6 +214,8 @@ async def enrich(
                     await asyncio.sleep(2)
             finally:
                 await browser.close()
+                if seek_http is not None:
+                    await seek_http.close()
     except AppError:
         raise
     except Exception as exc:

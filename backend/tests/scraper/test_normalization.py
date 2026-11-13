@@ -176,6 +176,9 @@ def test_classify_seniority_reads_level_words_from_the_title(title: str, expecte
         ("", "Not stated"),
         ("   ", "Not stated"),
         ("Somewhere,", "Not stated"),
+        ("Auckland 1010", "Auckland"),
+        ("Wellington 6011", "Wellington"),
+        ("Auckland CBD, Auckland 1010", "Auckland"),
     ],
 )
 def test_region_of_is_the_last_part_of_a_seek_location(location: str, expected: str) -> None:

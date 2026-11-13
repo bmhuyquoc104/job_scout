@@ -124,7 +124,8 @@ def classify_seniority(title: str) -> str:
 
 def region_of(location: str) -> str:
     """SEEK labels read "Suburb, Region" or just "Region", so the region is the last part."""
-    return location.rsplit(",", 1)[-1].strip() or "Not stated"
+    region = re.sub(r"\s+\d{4}$", "", location.rsplit(",", 1)[-1].strip())  # drop NZ postcode
+    return region or "Not stated"
 
 
 def get_pay_period(salary: str = "") -> str:

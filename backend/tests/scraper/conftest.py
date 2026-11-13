@@ -60,4 +60,13 @@ def fake_browser(monkeypatch: pytest.MonkeyPatch) -> None:
         async def __aexit__(self, *_: object) -> None:
             return None
 
+    class Http:
+        async def close(self) -> None:
+            return None
+
+    async def no_description(*_: object) -> None:  # keep the search teaser; no network
+        return None
+
     monkeypatch.setattr(enrichment, "async_playwright", Playwright, raising=False)
+    monkeypatch.setattr(enrichment.chrome_http, "client", Http)
+    monkeypatch.setattr(enrichment.seek_client, "fetch_description", no_description)
