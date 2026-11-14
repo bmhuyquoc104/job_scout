@@ -33,13 +33,42 @@ IT_TITLE = re.compile(
 )
 
 
+# The board lists all of Europe and gives no country, only free-text locations.
+# shortcut: a blocklist of foreign places seen so far; add a name here if a foreign job slips
+# through. Remote or blank locations are kept, as nothing says they are foreign.
+FOREIGN = re.compile(
+    r"\b(uk|gb|united kingdom|england|scotland|wales|northern ireland|london|manchester|bristol|"
+    r"cambridge|cardiff|edinburgh|sheffield|leeds|belfast|bolton|bradford|enfield|windsor|"
+    r"winnersh|abingdon|chiswick|kensington|hampshire|"
+    r"france|paris|lille|toulouse|bordeaux|nantes|lyon|niort|angoul\w+|levallois|wissous|"
+    r"nederland|netherlands|amsterdam|rotterdam|utrecht|eindhoven|den haag|den bosch|delft|"
+    r"leiden|gouda|zwolle|almelo|assen|drachten|hoogeveen|ridderkerk|schiphol|"
+    r"switzerland|schweiz|z\w+rich|bern|basel|lausanne|luzern|lucerne|zug|olten|chur|"
+    r"st\. gallen|schwyz|schlieren|wallisellen|fehraltorf|frauenfeld|pf\w+ffikon|rapperswil|"
+    r"muttenz|zolliko\w+|steinhausen|merenschwand|"
+    r"austria|wien|vienna|belgium|spain|hungary|budapest)\b",
+    re.IGNORECASE,
+)
+GERMAN = re.compile(
+    r"\b(germany|deutschland)\b|(?<![\w-])de(?![\w-])", re.IGNORECASE
+)  # not "Île-de-France"
+
+
+def in_germany(job: dict[str, Any]) -> bool:
+    location = str(job.get("location") or "")
+    return not FOREIGN.search(location) or bool(GERMAN.search(location))
+
+
 def it_jobs(page: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """The page's IT jobs, each given our `id` (the job's slug)."""
+    """The page's IT jobs in Germany, each given our `id` (the job's slug)."""
     return [
         {**job, "id": job["slug"]}
         for job in page
-        if IT_TITLE.search(str(job.get("title") or ""))
-        or any(str(tag).lower() in IT_TAGS for tag in job.get("tags") or [])
+        if in_germany(job)
+        and (
+            IT_TITLE.search(str(job.get("title") or ""))
+            or any(str(tag).lower() in IT_TAGS for tag in job.get("tags") or [])
+        )
     ]
 
 
