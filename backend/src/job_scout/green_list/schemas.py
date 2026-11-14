@@ -49,3 +49,25 @@ class GreenListChange(BaseModel):
 
 class GreenListChangesResponse(BaseModel):
     changes: list[GreenListChange]
+
+
+class RouteRole(BaseModel):
+    title: str
+    code: str  # the country's occupation code (ANZSCO, NOC) or the salary threshold
+    tier: int | None
+    lists: list[str]
+    pathway: str
+
+
+class CountryRoutes(BaseModel):
+    country: str
+    country_name: str
+    list_name: str
+    # Routes that apply to any job, then the roles on the country's list that match the title.
+    general_routes: list[str]
+    roles: list[RouteRole]
+
+
+class RoutesResponse(BaseModel):
+    title: str
+    countries: list[CountryRoutes]

@@ -84,3 +84,5 @@ def job_board_dag(source: str, title: str, schedule: str):
 
 indeed_daily = job_board_dag("indeed", "Indeed", "0 8 * * *")
 glassdoor_daily = job_board_dag("glassdoor", "Glassdoor", "0 9 * * *")
+jobbank_daily = job_board_dag("jobbank", "Job Bank (Canada)", "0 10 * * *")
+arbeitnow_daily = job_board_dag("arbeitnow", "Arbeitnow (Germany)", "0 11 * * *")

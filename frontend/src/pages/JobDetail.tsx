@@ -55,6 +55,7 @@ export default function JobDetailPage() {
             <Link href={job.url} target="_blank" rel="noreferrer" underline="hover">
               Open original {sourceLabel(job.source)} listing ↗
             </Link>
+
           </Box>
           <Paper component="aside" variant="outlined" aria-label="Job details" sx={{ p: 2.25, alignSelf: "start", bgcolor: "background.paper" }}>
             <Stack component="dl" spacing={1.75} sx={{ m: 0 }}>

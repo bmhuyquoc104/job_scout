@@ -40,7 +40,7 @@ def build_description(payload: dict[str, Any]) -> str:
     return "\n\n".join(parts)
 
 
-_AMOUNT = re.compile(r"\$\s*(\d[\d,]*(?:\.\d+)?)\s*(k\b)?", re.IGNORECASE)
+_AMOUNT = re.compile(r"[$€]\s*(\d[\d,]*(?:\.\d+)?)\s*(k\b)?", re.IGNORECASE)
 # Pay period -> multiplier to a yearly figure (40h x 52 weeks = 2080h; 260 working days).
 _PERIODS = (
     (re.compile(r"per\s*(?:hour|hr)|/\s*h(?:ou)?r|hourly", re.IGNORECASE), 2080),
@@ -57,7 +57,7 @@ _MIN_ANNUAL, _MAX_ANNUAL = 10_000, 1_000_000
 def parse_salary(label: str) -> tuple[int | None, int | None]:
     """Estimate (min, max) annual NZD from free-text pay; (None, None) if there is no figure.
 
-    shortcut: only `$` amounts are read and hours/days are annualised at 2080h/260d; upgrade if
+    shortcut: only `$`/`€` amounts are read and hours/days are annualised at 2080h/260d; upgrade if
     SEEK starts sending structured pay data.
     """
     amounts = [

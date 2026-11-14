@@ -8,6 +8,10 @@
 - Use PostgreSQL `uuidv7()` server defaults for all application primary keys; use UUID foreign keys. Never use SQLite. Database tests must use Testcontainers with `postgres:18-alpine`, not a developer or application database.
 - Use the domain-oriented layout in `backend/src/job_scout/`; keep routers, schemas, models, and services inside their owning domain.
 
+## Adding a country
+
+- Follow the `add-country` skill (`.claude/skills/add-country/SKILL.md`): research job boards and immigration policy first, report, then build.
+
 ## Async and data
 
 - Do not use blocking network or database I/O inside `async def`; use async clients and `AsyncSession`.
@@ -29,6 +33,7 @@
 - Use pytest for backend behavior and the project's async HTTPX `ASGITransport` fixture for API tests.
 - Run `uv run ruff check src tests migrations --config pyproject.toml` and `uv run ruff format --check src tests migrations --config pyproject.toml` from `backend/`.
 - Run `uv run pytest` from `backend/`; tests start an isolated PostgreSQL 18 Testcontainer and apply Alembic migrations automatically. Docker must be running. Frontend changes must pass `pnpm lint` and `pnpm build` from `frontend/`.
+- After adding or changing an Alembic migration, apply it to the local dev database (`uv run alembic upgrade head` from `backend/`) and run `docker restart jobs-backend-1` so the local UI picks it up. Never touch Neon/production: CI migrates it when `main` is pushed.
 - Never commit unless explicitly requested. Keep `.env`, local databases, `node_modules`, build output, and agent workspaces out of source control.
 
 ## Agent and model selection

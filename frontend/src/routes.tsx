@@ -7,6 +7,8 @@ import JobDetailPage from "./pages/JobDetail";
 // The postings page carries the data grid, the heaviest dependency, so it loads on demand.
 const Jobs = lazy(() => import("./pages/Jobs"));
 const Immigration = lazy(() => import("./pages/Immigration"));
+const CompareRoutes = lazy(() => import("./pages/CompareRoutes"));
+const Analytics = lazy(() => import("./pages/Analytics"));
 const CvUpload = lazy(() => import("./pages/CvUpload"));
 const RecommendedJobs = lazy(() => import("./pages/RecommendedJobs"));
 
@@ -18,6 +20,8 @@ export default function AppRoutes() {
       <Route path="/categories/:categoryId" element={<Jobs />} />
       <Route path="/categories/:categoryId/diagrams" element={<Diagrams />} />
       <Route path="/immigration" element={<Immigration />} />
+      <Route path="/compare-routes" element={<CompareRoutes />} />
+      <Route path="/analytics" element={<Analytics />} />
       <Route path="/green-list" element={<Navigate to="/immigration" replace />} />
       <Route path="/cv" element={<CvUpload />} />
       <Route path="/recommended-jobs" element={<RecommendedJobs />} />

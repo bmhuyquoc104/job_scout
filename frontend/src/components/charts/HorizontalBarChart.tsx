@@ -13,13 +13,15 @@ interface HorizontalBarChartProps {
   bars: BarItem[];
   /** What the shares are a share of. */
   total: number;
+  /** Replaces the default "count and share" text, e.g. for salaries. */
+  valueText?: (bar: BarItem) => string;
 }
 
 const BAR_HEIGHT = 16; // columns and bars stay thin (24px at most)
 const TRACK_SHARE = 82; // longest bar fills this much of the track, leaving room for its value
 
 /** Ranked horizontal bars: names on the left, value at the tip of each bar, biggest first. */
-export default function HorizontalBarChart({ title, bars, total }: HorizontalBarChartProps) {
+export default function HorizontalBarChart({ title, bars, total, valueText }: HorizontalBarChartProps) {
   const peak = Math.max(1, ...bars.map((bar) => bar.value));
 
   return (
@@ -30,7 +32,7 @@ export default function HorizontalBarChart({ title, bars, total }: HorizontalBar
           arrow
           placement="top"
           followCursor
-          title={`${bar.label}: ${formatCount(bar.value)} jobs (${formatShare(bar.value, total)})`}
+          title={valueText ? `${bar.label}: ${valueText(bar)}` : `${bar.label}: ${formatCount(bar.value)} jobs (${formatShare(bar.value, total)})`}
         >
           <Box
             component="li"
@@ -59,10 +61,16 @@ export default function HorizontalBarChart({ title, bars, total }: HorizontalBar
                 }}
               />
               <Typography variant="body2" noWrap sx={{ fontVariantNumeric: "tabular-nums" }}>
-                <b>{formatCount(bar.value)}</b>{" "}
-                <Typography component="span" variant="caption" color="text.secondary">
-                  {formatShare(bar.value, total)}
-                </Typography>
+                {valueText ? (
+                  <b>{valueText(bar)}</b>
+                ) : (
+                  <>
+                    <b>{formatCount(bar.value)}</b>{" "}
+                    <Typography component="span" variant="caption" color="text.secondary">
+                      {formatShare(bar.value, total)}
+                    </Typography>
+                  </>
+                )}
               </Typography>
             </Box>
           </Box>

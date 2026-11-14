@@ -2,6 +2,19 @@ import { Alert, Box, Button, Card, CardContent, CircularProgress, Stack, ToggleB
 import { Link as RouterLink } from "react-router-dom";
 import { useCountry } from "../country/CountryContext";
 
+const TOOLS = [
+  {
+    to: "/compare-routes",
+    title: "Compare immigration routes for a job",
+    text: "Pick a job and see each country's priority list and routes.",
+  },
+  {
+    to: "/analytics",
+    title: "Analytics: compare a job across countries",
+    text: "Charts of open jobs, pay and sources for one job in every country.",
+  },
+];
+
 export default function Dashboard() {
   const { countryCategories: categories, countries, country, setCountry, error, loading } = useCountry();
 
@@ -11,6 +24,27 @@ export default function Dashboard() {
         Dashboard
       </Typography>
       <Typography component="h1" variant="h4" sx={{ mt: 0.5, mb: 2.25, fontSize: 24, fontWeight: 700 }}>
+        Compare across countries
+      </Typography>
+      {/* These cover every country at once, so they sit above the country switch below. */}
+      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 500px))", gap: 1.5, mb: 3.5 }}>
+        {TOOLS.map((tool) => (
+          <Card key={tool.to} variant="outlined">
+            <CardContent>
+              <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between" gap={2}>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>{tool.title}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{tool.text}</Typography>
+                </Box>
+                <Button component={RouterLink} to={tool.to} variant="contained" sx={{ flex: "none" }}>
+                  Open
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
+      <Typography component="h2" variant="h5" sx={{ mb: 2.25, fontSize: 20, fontWeight: 700 }}>
         Job categories
       </Typography>
       {countries.length > 1 && (

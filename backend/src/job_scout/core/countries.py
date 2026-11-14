@@ -21,6 +21,10 @@ class Country:
     # NZ only so far: Immigration NZ's accredited employer list. Other countries promote every
     # listing until their own check exists (e.g. Australia's approved sponsor register).
     employer_check: bool
+    currency: str = "$"  # symbol used in the salary labels the job boards build
+    # shortcut: hand-written one-liners on the main routes that apply to any job, not scraped;
+    # recheck them against the official sites when rules change.
+    general_routes: tuple[str, ...] = ()
 
 
 COUNTRIES: dict[str, Country] = {
@@ -35,6 +39,10 @@ COUNTRIES: dict[str, Country] = {
         "Immigration New Zealand",
         "Green List",
         employer_check=True,
+        general_routes=(
+            "Accredited Employer Work Visa: a job offer from an accredited employer.",
+            "Skilled Migrant Category residence: points-based, with or without a Green List role.",
+        ),
     ),
     "AU": Country(
         "Australia",
@@ -47,5 +55,46 @@ COUNTRIES: dict[str, Country] = {
         "Department of Home Affairs",
         "Skilled occupation lists",
         employer_check=False,
+        general_routes=(
+            "Skills in Demand visa (482): employer-sponsored work visa.",
+            "Skilled Independent (189) and Nominated (190) visas: points-tested, for roles on the "
+            "long-term lists.",
+        ),
+    ),
+    # No SEEK in Canada (empty seek fields): the job boards are Indeed, Glassdoor and Job Bank.
+    "CA": Country(
+        "Canada",
+        "",
+        "",
+        "en-CA",
+        "ca.indeed.com",
+        "www.glassdoor.ca",
+        "Canada",
+        "Immigration, Refugees and Citizenship Canada",
+        "Express Entry categories",
+        employer_check=False,
+        general_routes=(
+            "Express Entry general draws: ranked by points; an LMIA-backed job offer adds points.",
+            "Employer-specific work permit: needs an LMIA for the job.",
+        ),
+    ),
+    # No SEEK here either. The rule is a salary threshold (EU Blue Card), not an occupation list.
+    "DE": Country(
+        "Germany",
+        "",
+        "",
+        "de-DE",
+        "de.indeed.com",
+        "www.glassdoor.de",
+        "Germany",
+        "Federal Employment Agency",
+        "EU Blue Card salary thresholds",
+        employer_check=False,
+        general_routes=(
+            "EU Blue Card: a job offer at the minimum salary (see the thresholds below).",
+            "Opportunity Card (Chancenkarte): points-based visa to look for work.",
+            "Skilled worker visa: a recognised qualification and a job offer.",
+        ),
+        currency="€",
     ),
 }

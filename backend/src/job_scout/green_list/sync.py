@@ -9,7 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from job_scout.core.errors import AppError, ErrorCode
 from job_scout.green_list.australia import fetch_occupations
+from job_scout.green_list.canada import fetch_occupations as fetch_canada
 from job_scout.green_list.client import fetch_green_list
+from job_scout.green_list.germany import fetch_thresholds
 from job_scout.green_list.models import GreenListEvent, GreenListEventType, GreenListRole
 from job_scout.green_list.parsing import RoleRecord
 
@@ -120,6 +122,8 @@ async def _fetch_nz() -> list[RoleRecord]:
 FETCHERS: dict[str, Callable[[], Awaitable[list[RoleRecord]]]] = {
     "NZ": _fetch_nz,
     "AU": fetch_occupations,
+    "CA": fetch_canada,
+    "DE": fetch_thresholds,
 }
 
 

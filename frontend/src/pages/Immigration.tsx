@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { getGreenList, getGreenListChanges, type GreenListChange, type GreenListRole } from "../api/client";
+import { Link as RouterLink } from "react-router-dom";
 import { useApi } from "../api/useApi";
 import { useCountry } from "../country/CountryContext";
 
@@ -233,6 +234,9 @@ export default function Immigration() {
         )}
         {data?.synced_at && ` Last checked ${shortDate(data.synced_at)}; it is refreshed monthly.`}
       </Typography>
+      <Button component={RouterLink} to="/compare-routes" variant="outlined" size="small" sx={{ mb: 2 }}>
+        Compare routes for a job across countries →
+      </Button>
       {error && <Alert severity="error">{error}</Alert>}
       {data && data.total === 0 && (
         <Alert severity="info">The {countryName} list has not been fetched yet. Run the monthly sync in Airflow to load it.</Alert>

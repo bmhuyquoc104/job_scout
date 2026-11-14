@@ -5,11 +5,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from job_scout.core.countries import COUNTRIES
 from job_scout.green_list.models import GreenListEvent, GreenListEventType, GreenListRole
+from job_scout.green_list.routes import matching_roles
 from job_scout.green_list.schemas import (
+    CountryRoutes,
     GreenListChange,
     GreenListChangesResponse,
     GreenListResponse,
     GreenListRoleItem,
+    RouteRole,
+    RoutesResponse,
 )
 
 _MAX_CHANGES = 500
@@ -87,3 +91,46 @@ async def get_changes(
             for event, role in rows
         ]
     )
+
+
+async def get_routes(session: AsyncSession, title: str) -> RoutesResponse:
+    """For one job title, every country's immigration routes: general ones and matching roles."""
+    roles = (
+        await session.scalars(select(GreenListRole).where(GreenListRole.is_active.is_(True)))
+    ).all()
+    countries = []
+    for code, country in COUNTRIES.items():
+        matches = matching_roles(title, [role for role in roles if role.country == code])
+        countries.append(
+            CountryRoutes(
+                country=code,
+                country_name=country.name,
+                list_name=country.occupation_list_name,
+                general_routes=list(country.general_routes),
+                roles=[
+                    RouteRole(
+                        title=role.title,
+                        code=role.anzsco_code,
+                        tier=role.tier,
+                        lists=role.lists,
+                        pathway=role.pathway,
+                    )
+                    for role in matches
+                ],
+            )
+        )
+    return RoutesResponse(title=title, countries=countries)
+
+
+async def get_titles(session: AsyncSession) -> list[str]:
+    """Every role title on any country's list, once (ignoring case), for a picker."""
+    titles = await session.scalars(
+        select(GreenListRole.title).where(
+            GreenListRole.is_active.is_(True),
+            GreenListRole.industry.not_like("Salary threshold%"),
+        )
+    )
+    unique: dict[str, str] = {}
+    for title in titles:  # of two spellings differing in case, keep the capitalised one
+        unique[title.lower()] = min(title, unique.get(title.lower(), title))
+    return sorted(unique.values(), key=str.lower)

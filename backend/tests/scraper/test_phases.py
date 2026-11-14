@@ -85,6 +85,42 @@ async def test_job_boards_search_once_per_country_and_save_under_its_ict_categor
             )
 
 
+async def test_canada_is_searched_on_the_job_boards_but_not_on_seek(
+    test_database: async_sessionmaker[AsyncSession],
+) -> None:
+    async with test_database() as session, session.begin():
+        await session.execute(
+            update(Category).where(Category.slug == "ict-ca").values(enabled=True)
+        )
+    try:
+        assert await phases.enabled_category_slugs(source="indeed") == ["ict", "ict-ca"]
+        assert await phases.enabled_category_slugs(source="glassdoor") == ["ict", "ict-ca"]
+        assert await phases.enabled_category_slugs(source="seek") == ["ict"]  # SEEK has no Canada
+    finally:
+        async with test_database() as session, session.begin():
+            await session.execute(
+                update(Category).where(Category.slug == "ict-ca").values(enabled=False)
+            )
+
+
+async def test_germany_is_searched_on_indeed_and_arbeitnow_but_not_on_seek(
+    test_database: async_sessionmaker[AsyncSession],
+) -> None:
+    async with test_database() as session, session.begin():
+        await session.execute(
+            update(Category).where(Category.slug == "ict-de").values(enabled=True)
+        )
+    try:
+        assert await phases.enabled_category_slugs(source="indeed") == ["ict", "ict-de"]
+        assert await phases.enabled_category_slugs(source="arbeitnow") == ["ict-de"]
+        assert await phases.enabled_category_slugs(source="seek") == ["ict"]
+    finally:
+        async with test_database() as session, session.begin():
+            await session.execute(
+                update(Category).where(Category.slug == "ict-de").values(enabled=False)
+            )
+
+
 async def test_employment_hero_also_covers_the_australian_ict_category(
     test_database: async_sessionmaker[AsyncSession],
 ) -> None:

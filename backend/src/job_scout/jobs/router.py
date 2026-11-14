@@ -5,8 +5,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from job_scout.database import get_session
-from job_scout.jobs import locations, service, trends
+from job_scout.jobs import compare, locations, service, trends
 from job_scout.jobs.schemas import (
+    JobComparison,
     JobDetail,
     JobFacets,
     JobQuery,
@@ -61,3 +62,10 @@ async def get_sources() -> list[SourceOption]:
 @router.get("/jobs/{job_id}", response_model=JobDetail)
 async def get_job(job_id: UUID, session: SessionDep) -> JobDetail:
     return await service.get_job(session, job_id)
+
+
+@router.get("/compare/jobs", response_model=JobComparison)
+async def compare_jobs(
+    session: SessionDep, title: Annotated[str, Query(min_length=1, max_length=200)]
+) -> JobComparison:
+    return await compare.compare_job(session, title)

@@ -12,6 +12,10 @@ export type GreenListResponse = components["schemas"]["GreenListResponse"];
 export type GreenListRole = components["schemas"]["GreenListRoleItem"];
 export type GreenListChange = components["schemas"]["GreenListChange"];
 export type GreenListChangesResponse = components["schemas"]["GreenListChangesResponse"];
+export type RoutesResponse = components["schemas"]["RoutesResponse"];
+export type CountryRoutes = components["schemas"]["CountryRoutes"];
+export type JobComparison = components["schemas"]["JobComparison"];
+export type CountryJobStats = components["schemas"]["CountryJobStats"];
 export type CvSkills = components["schemas"]["CvSkills"];
 export type JobMatch = components["schemas"]["JobMatch"];
 export type JobStatus = "open" | "closed" | "all";
@@ -76,6 +80,18 @@ export function getLocations(categoryId: string): Promise<LocationBreakdown> {
 /** A country's priority-occupation list (NZ: the Green List; AU: the skilled occupation lists). */
 export function getGreenList(country: string): Promise<GreenListResponse> {
   return get(`/api/green-list?country=${country}`);
+}
+
+export function getJobComparison(title: string): Promise<JobComparison> {
+  return get(`/api/compare/jobs?title=${encodeURIComponent(title)}`);
+}
+
+export function getRoleTitles(): Promise<string[]> {
+  return get("/api/green-list/titles");
+}
+
+export function getImmigrationRoutes(title: string): Promise<RoutesResponse> {
+  return get(`/api/green-list/routes?title=${encodeURIComponent(title)}`);
 }
 
 export function getGreenListChanges(days: number, country: string): Promise<GreenListChangesResponse> {

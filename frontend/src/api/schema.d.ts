@@ -140,6 +140,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/compare/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compare Jobs */
+        get: operations["compare_jobs_api_compare_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/green-list": {
         parameters: {
             query?: never;
@@ -166,6 +183,40 @@ export interface paths {
         };
         /** Get Green List Changes */
         get: operations["get_green_list_changes_api_green_list_changes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/green-list/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Routes */
+        get: operations["get_routes_api_green_list_routes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/green-list/titles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Titles */
+        get: operations["get_titles_api_green_list_titles_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -259,6 +310,40 @@ export interface components {
             country_name: string;
             /** Active Job Count */
             active_job_count: number;
+        };
+        /** CountryJobStats */
+        CountryJobStats: {
+            /** Country */
+            country: string;
+            /** Country Name */
+            country_name: string;
+            /** Currency */
+            currency: string;
+            /** Open Jobs */
+            open_jobs: number;
+            /** With Salary */
+            with_salary: number;
+            /** Median Salary Min */
+            median_salary_min: number | null;
+            /** Median Salary Max */
+            median_salary_max: number | null;
+            /** By Source */
+            by_source: {
+                [key: string]: number;
+            };
+        };
+        /** CountryRoutes */
+        CountryRoutes: {
+            /** Country */
+            country: string;
+            /** Country Name */
+            country_name: string;
+            /** List Name */
+            list_name: string;
+            /** General Routes */
+            general_routes: string[];
+            /** Roles */
+            roles: components["schemas"]["RouteRole"][];
         };
         /**
          * CvSkills
@@ -356,6 +441,13 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** JobComparison */
+        JobComparison: {
+            /** Title */
+            title: string;
+            /** Countries */
+            countries: components["schemas"]["CountryJobStats"][];
+        };
         /** JobDetail */
         JobDetail: {
             /**
@@ -372,7 +464,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "seek" | "employmenthero" | "indeed" | "glassdoor";
+            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow";
             /** External Id */
             external_id: string;
             /** Company Name */
@@ -429,7 +521,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "seek" | "employmenthero" | "indeed" | "glassdoor";
+            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow";
             /** Position */
             position: string;
             /** Company Name */
@@ -466,6 +558,8 @@ export interface components {
             position: string;
             /** Company Name */
             company_name: string;
+            /** Source */
+            source: string;
             /** Location */
             location: string;
             /** Salary Label */
@@ -517,6 +611,26 @@ export interface components {
             /** Category Slug */
             category_slug: string;
         };
+        /** RouteRole */
+        RouteRole: {
+            /** Title */
+            title: string;
+            /** Code */
+            code: string;
+            /** Tier */
+            tier: number | null;
+            /** Lists */
+            lists: string[];
+            /** Pathway */
+            pathway: string;
+        };
+        /** RoutesResponse */
+        RoutesResponse: {
+            /** Title */
+            title: string;
+            /** Countries */
+            countries: components["schemas"]["CountryRoutes"][];
+        };
         /**
          * SourceBreakdown
          * @description Open jobs per source, biggest first.
@@ -533,7 +647,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "seek" | "employmenthero" | "indeed" | "glassdoor";
+            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow";
             /** Count */
             count: number;
         };
@@ -543,7 +657,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "seek" | "employmenthero" | "indeed" | "glassdoor";
+            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow";
             /** Label */
             label: string;
         };
@@ -625,7 +739,7 @@ export interface operations {
                 limit?: number;
                 offset?: number;
                 status?: "open" | "closed" | "all";
-                source?: ("seek" | "employmenthero" | "indeed" | "glassdoor") | null;
+                source?: ("seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow") | null;
                 sort?: "position" | "company" | "location" | "arrangement" | "work_type" | "status" | "salary" | "listed" | "source";
                 order?: "asc" | "desc";
                 position?: string | null;
@@ -843,6 +957,37 @@ export interface operations {
             };
         };
     };
+    compare_jobs_api_compare_jobs_get: {
+        parameters: {
+            query: {
+                title: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobComparison"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_green_list_api_green_list_get: {
         parameters: {
             query?: {
@@ -902,6 +1047,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_routes_api_green_list_routes_get: {
+        parameters: {
+            query: {
+                title: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_titles_api_green_list_titles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
                 };
             };
         };

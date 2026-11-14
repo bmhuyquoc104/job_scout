@@ -208,6 +208,7 @@ def parse_listing(listing: dict[str, Any], today: date, country: str = "NZ") -> 
         "company": header.get("employerNameFromSearch") or "",
         "location": header.get("locationName") or "",
         "datePosted": (today - timedelta(days=header.get("ageInDays") or 0)).isoformat(),
+        "currency": COUNTRIES[country].currency,
         "payPeriod": header.get("payPeriod"),
         "payMin": pay.get("p10"),
         "payMax": pay.get("p90"),
@@ -218,7 +219,7 @@ def parse_listing(listing: dict[str, Any], today: date, country: str = "NZ") -> 
 
 def normalize_listing(payload: dict[str, Any]) -> NormalizedListing:
     amounts = [
-        f"${amount:,.0f}"
+        f"{payload.get('currency', '$')}{amount:,.0f}"
         for amount in (payload.get("payMin"), payload.get("payMax"))
         if isinstance(amount, int | float)
     ]

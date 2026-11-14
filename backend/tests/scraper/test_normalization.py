@@ -183,3 +183,7 @@ def test_classify_seniority_reads_level_words_from_the_title(title: str, expecte
 )
 def test_region_of_is_the_last_part_of_a_seek_location(location: str, expected: str) -> None:
     assert normalization.region_of(location) == expected
+
+
+def test_parse_salary_reads_euro_amounts_too() -> None:
+    assert normalization.parse_salary("€60,000 - €80,000 per year") == (60000, 80000)

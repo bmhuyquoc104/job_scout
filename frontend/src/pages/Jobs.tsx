@@ -16,6 +16,7 @@ import { useApi } from "../api/useApi";
 import ActiveFilters from "../components/ActiveFilters";
 import CategorySwitcher from "../components/CategorySwitcher";
 import { useCountry } from "../country/CountryContext";
+import ImmigrationRoutes from "../components/ImmigrationRoutes";
 import JobColumnMenu from "../components/JobColumnMenu";
 import { JobTableContext } from "../components/JobTableContext";
 import { jobColumns } from "../components/jobColumns";
@@ -61,6 +62,7 @@ export default function Jobs() {
         </Typography>
         <ActiveFilters />
         {error && <Alert severity="error">{error}</Alert>}
+        {params.position.trim() && <ImmigrationRoutes title={params.position.trim()} />}
         <Box sx={{ flex: 1, minHeight: 420 }}>
           <DataGrid
             aria-label={`${result?.category_name ?? "Job"} listings`}

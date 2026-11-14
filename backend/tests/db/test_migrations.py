@@ -223,6 +223,22 @@ async def test_every_seek_classification_is_seeded_and_only_ict_is_enabled(
     assert by_slug["mining-resources-energy"]["seek_classification_id"] == "6058"
 
 
+async def test_canadian_ict_category_exists_but_is_off_until_enabled(
+    connection: asyncpg.Connection,
+) -> None:
+    row = await connection.fetchrow(
+        "SELECT seek_classification_id, employmenthero_sector_id, enabled FROM category "
+        "WHERE slug = 'ict-ca' AND country = 'CA'"
+    )
+
+    # The job boards find it by the same ICT id; no SEEK or Employment Hero there.
+    assert dict(row) == {
+        "seek_classification_id": "6281",
+        "employmenthero_sector_id": None,
+        "enabled": False,
+    }
+
+
 async def test_australian_ict_category_exists_but_is_off_until_enabled(
     connection: asyncpg.Connection,
 ) -> None:

@@ -12,11 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from job_scout.core.countries import COUNTRIES
 from job_scout.core.errors import AppError, ErrorCode
 from job_scout.scraper import (
+    arbeitnow,
     chrome_http,
     employmenthero,
     glassdoor,
     immigration_client,
     indeed,
+    jobbank,
     seek_client,
 )
 from job_scout.scraper.immigration_client import extract_immigration_fields
@@ -36,6 +38,8 @@ SOURCES = {
     "employmenthero": (employmenthero.normalize_listing, employmenthero.build_description),
     "indeed": (indeed.normalize_listing, indeed.build_description),
     "glassdoor": (glassdoor.normalize_listing, glassdoor.build_description),
+    "jobbank": (jobbank.normalize_listing, jobbank.build_description),
+    "arbeitnow": (arbeitnow.normalize_listing, arbeitnow.build_description),
 }
 MAX_ENRICH_ATTEMPTS = 3  # failed drafts are retried this many times, then left for a payload change
 

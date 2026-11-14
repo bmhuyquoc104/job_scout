@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy import select
 
 from job_scout.categories.models import Category
+from job_scout.core.countries import COUNTRIES
 from job_scout.core.errors import AppError, ErrorCode
 from job_scout.database import session_factory
 from job_scout.scraper.discovery import discoverer, reconcile_active_jobs
@@ -33,6 +34,16 @@ async def enabled_category_slugs(only: str | None = None, source: str = "seek") 
         query = query.where(Category.employmenthero_sector_id.is_not(None))
     elif source in ("indeed", "glassdoor"):
         query = query.where(Category.seek_classification_id == BOARD_CLASSIFICATION)
+    elif source == "jobbank":  # Canada's government board, searched for IT jobs by NOC code
+        query = query.where(
+            Category.country == "CA", Category.seek_classification_id == BOARD_CLASSIFICATION
+        )
+    elif source == "arbeitnow":  # Germany's free job API, filtered to IT jobs
+        query = query.where(
+            Category.country == "DE", Category.seek_classification_id == BOARD_CLASSIFICATION
+        )
+    elif source == "seek":
+        query = query.where(Category.country.in_([c for c, v in COUNTRIES.items() if v.seek_host]))
     async with session_factory() as session:
         slugs = list(await session.scalars(query))
     if only is None:

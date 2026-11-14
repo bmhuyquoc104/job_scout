@@ -166,6 +166,7 @@ def parse_search(
         {
             **job,
             "id": job["key"],
+            "currency": COUNTRIES[country].currency,
             "url": f"https://{COUNTRIES[country].indeed_host}/viewjob?jk={job['key']}",
         }
         for result in search.get("results") or []
@@ -191,7 +192,7 @@ def _salary_label(payload: dict[str, Any]) -> str:
     salary = (payload.get("compensation") or {}).get("baseSalary") or {}
     pay_range = salary.get("range") or {}
     amounts = [
-        f"${amount:,.0f}"
+        f"{payload.get('currency', '$')}{amount:,.0f}"
         for amount in (pay_range.get("min"), pay_range.get("max"), pay_range.get("value"))
         if isinstance(amount, int | float)
     ]

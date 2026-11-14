@@ -214,3 +214,17 @@ def test_glassdoor_links_follow_the_country() -> None:
     payload = glassdoor.parse_listing(GLASSDOOR_LISTING, date(2026, 11, 7), "AU")
 
     assert payload["url"].startswith("https://www.glassdoor.com.au/job-listing/j?jl=")
+
+
+def test_german_listings_are_priced_in_euros() -> None:
+    job = {
+        **INDEED_JOB,
+        "compensation": {
+            "baseSalary": {"unitOfWork": "YEAR", "range": {"min": 60000, "max": 80000}}
+        },
+    }
+    payloads, _ = indeed.parse_search({"data": {"jobSearch": {"results": [{"job": job}]}}}, "DE")
+    assert indeed.normalize_listing(payloads[0]).salary_label == "€60,000 - €80,000 per year"
+
+    payload = glassdoor.parse_listing(GLASSDOOR_LISTING, date(2026, 11, 7), "DE")
+    assert glassdoor.normalize_listing(payload).salary_label == "€90,000 - €120,000 per year"

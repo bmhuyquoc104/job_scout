@@ -161,3 +161,20 @@ class LocationBreakdown(BaseModel):
 
     regions: list[LocationCount]
     total_open: int
+
+
+class CountryJobStats(BaseModel):
+    country: str
+    country_name: str
+    currency: str  # salaries are in each country's own currency; they are not converted
+    open_jobs: int
+    with_salary: int  # open jobs with a salary estimate
+    # Median of the annual salary estimates, in the country's currency; None without any.
+    median_salary_min: int | None
+    median_salary_max: int | None
+    by_source: dict[str, int]
+
+
+class JobComparison(BaseModel):
+    title: str
+    countries: list[CountryJobStats]

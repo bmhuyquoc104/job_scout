@@ -70,7 +70,11 @@ export const jobColumns: GridColDef<JobListItem>[] = [
     flex: 1.2,
     minWidth: 150,
     renderCell: ({ row }) => {
-      const estimate = formatAnnualRange(row.annual_salary_min, row.annual_salary_max);
+      const estimate = formatAnnualRange(
+        row.annual_salary_min,
+        row.annual_salary_max,
+        row.salary_label.includes("€") ? "€" : "$",
+      );
       return (
         <Box>
           {row.salary_label || "Not listed"}

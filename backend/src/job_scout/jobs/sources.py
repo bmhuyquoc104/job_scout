@@ -11,4 +11,6 @@ JOB_SOURCES: dict[str, str] = {
     "employmenthero": "Employment Hero",
     "indeed": "Indeed",
     "glassdoor": "Glassdoor",
+    "jobbank": "Job Bank",
+    "arbeitnow": "Arbeitnow",
 }

@@ -10,7 +10,7 @@ EXTERNAL = {"python": BACKEND_PYTHON, "expect_airflow": False, "expect_pendulum"
 
 @dag(
     dag_id="job_scout_green_list_monthly",
-    description="Fetch each country's priority-occupation list (NZ Green List, AU skilled occupation lists), store it, and record changes.",
+    description="Fetch each country's priority-occupation list (NZ Green List, AU skilled occupation lists, CA Express Entry categories, DE Blue Card salary thresholds), store it, and record changes.",
     schedule="0 3 1 * *",  # 1st of each month, 03:00 Pacific/Auckland
     start_date=pendulum.datetime(2026, 11, 2, tz="Pacific/Auckland"),
     catchup=False,

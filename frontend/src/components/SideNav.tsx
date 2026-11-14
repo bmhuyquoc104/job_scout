@@ -92,7 +92,7 @@ export default function SideNav() {
             Job Scout
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            New Zealand
+            Jobs &amp; immigration
           </Typography>
         </Box>
       </Box>
