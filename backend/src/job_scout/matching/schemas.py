@@ -10,6 +10,7 @@ class JobMatch(BaseModel):
     id: UUID
     position: str
     company_name: str
+    source: str
     location: str
     salary_label: str
     # 0-100: how much of the job's skill list the CV covers (see rank_jobs).

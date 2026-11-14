@@ -22,9 +22,5 @@ frontend/openapi.json
 .mypy_cache/
 .env.*
 !.env.example
-# graphify: keep only graph.json and GRAPH_REPORT.md
-graphify-out/*/
-graphify-out/cache/
-graphify-out/.*
-graphify-out/graph.html
-graphify-out/manifest.json
+# graphify output is local only
+graphify-out/
