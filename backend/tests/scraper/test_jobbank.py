@@ -81,3 +81,12 @@ def test_a_listing_is_normalised_with_its_lmia_status_in_the_description() -> No
     assert jobbank.build_description(payload) == (
         "Tasks: Build sites.\n\nThe employer has an approved LMIA (can hire foreign workers)."
     )
+
+
+def test_a_job_with_no_description_still_gets_a_pointer_to_the_original_listing() -> None:
+    payload = {"url": "https://www.jobbank.gc.ca/jobsearch/jobposting/9", "description": ""}
+
+    assert jobbank.build_description(payload) == (
+        "Job Bank has no description for this job; see the original listing: "
+        "https://www.jobbank.gc.ca/jobsearch/jobposting/9"
+    )

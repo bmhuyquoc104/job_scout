@@ -133,5 +133,9 @@ _LMIA_NOTES = {
 
 
 def build_description(payload: dict[str, Any]) -> str:
-    parts = [str(payload.get("description") or ""), _LMIA_NOTES.get(str(payload.get("lmia")), "")]
+    # Many Job Bank jobs are copied from other sites and carry no text of their own.
+    text = str(payload.get("description") or "") or (
+        f"Job Bank has no description for this job; see the original listing: {payload.get('url')}"
+    )
+    parts = [text, _LMIA_NOTES.get(str(payload.get("lmia")), "")]
     return "\n\n".join(part for part in parts if part)
