@@ -15,17 +15,28 @@ class JobMatch(BaseModel):
     salary_label: str
     # 0-100: how much of the job's skill list the CV covers (see rank_jobs).
     score: int
+    # The ad mentions visa sponsorship or similar; such jobs get a score bonus.
+    visa_sponsor: bool
+    # Years of experience the ad asks for (stated, or implied by "senior" etc.); None if unknown.
+    required_years: int | None
     # Skills this job asks for that the CV lacks, most in-demand first; only for weak matches.
     missing_skills: list[str]
+    # Skills this job asks for that the CV has, by name (at most MAX_MATCHED).
+    matched_skills: list[str]
 
 
 class CvSkills(BaseModel):
     """The IT skills found in an uploaded CV; the page keeps them in the browser."""
 
     skills: list[str]
+    # Years of experience the CV states; None if it states none.
+    years: int | None = None
 
 
 class MatchRequest(BaseModel):
+    years: int | None = Field(default=None, ge=0, le=60)
+    limit: int | None = Field(default=None, ge=1, le=500)  # keep only the best N
+    visa_only: bool = False  # keep only jobs that offer visa sponsorship
     skills: list[Annotated[str, StringConstraints(min_length=1, max_length=30)]] = Field(
         min_length=1, max_length=5000
     )

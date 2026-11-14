@@ -10,6 +10,7 @@ from job_scout.categories.service import require_enabled_category
 from job_scout.core.errors import AppError, ErrorCode
 from job_scout.jobs.models import Job, JobEvent, JobEventType
 from job_scout.jobs.schemas import (
+    CategoryVisaStats,
     JobDetail,
     JobFacets,
     JobListItem,
@@ -56,6 +57,7 @@ _SORT_KEYS: dict[str, ColumnElement[Any]] = {
     "salary": _salary_midpoint,
     "listed": Job.listed_at,
     "source": Job.source,
+    "visa": Job.visa_sponsor,
 }
 
 
@@ -77,6 +79,8 @@ def _filters(category_id: UUID, query: JobQuery) -> list[ColumnElement[bool]]:
     if query.work_type:
         filters.append(Job.work_types.has_any(array(query.work_type)))
     has_salary = or_(Job.annual_salary_min.is_not(None), Job.annual_salary_max.is_not(None))
+    if query.visa != "any":
+        filters.append(Job.visa_sponsor.is_(query.visa == "offered"))
     if query.salary == "listed":
         filters.append(has_salary)
     elif query.salary == "unlisted":
@@ -159,3 +163,15 @@ async def get_source_breakdown(session: AsyncSession, category_id: UUID) -> Sour
         sources=[SourceCount(source=source, count=count) for source, count in rows],
         total_open=sum(count for _, count in rows),
     )
+
+
+async def get_visa_stats(session: AsyncSession, category_id: UUID) -> CategoryVisaStats:
+    await require_enabled_category(session, category_id)
+    total, sponsored = (
+        await session.execute(
+            select(func.count(), func.count().filter(Job.visa_sponsor.is_(True))).where(
+                Job.category_id == category_id, Job.is_active.is_(True)
+            )
+        )
+    ).one()
+    return CategoryVisaStats(total_open=total, sponsored=sponsored)

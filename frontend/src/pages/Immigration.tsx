@@ -21,6 +21,7 @@ import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { getGreenList, getGreenListChanges, type GreenListChange, type GreenListRole } from "../api/client";
 import { Link as RouterLink } from "react-router-dom";
 import { useApi } from "../api/useApi";
+import PageHeader from "../components/PageHeader";
 import { useCountry } from "../country/CountryContext";
 
 const CHANGE_DAYS = 90;
@@ -213,14 +214,12 @@ export default function Immigration() {
   }, [roles, active, industry, search]);
 
   return (
-    <Box component="main" sx={{ flex: 1, minWidth: 0, minHeight: 0, p: 3, overflow: "auto" }}>
-      <Typography color="primary" variant="overline" fontWeight={700} letterSpacing={1}>
-        {data?.source_name ?? countryName}
-      </Typography>
-      <Typography component="h1" variant="h4" sx={{ mt: 0.5, mb: 0.5, fontSize: 24, fontWeight: 700 }}>
-        {data?.list_name ?? "Immigration occupations"}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 760 }}>
+    <Box component="main" sx={{ flex: 1, minWidth: 0, minHeight: 0, p: { xs: 2, md: 3 }, overflow: "auto" }}>
+      <PageHeader
+        eyebrow={data?.source_name ?? countryName}
+        title={data?.list_name ?? "Immigration occupations"}
+        subtitle={
+          <>
         {hasTiers ? (
           <>
             Roles {countryName} needs people for. <b>Tier 1</b> roles can lead to residence straight away (Straight to Residence); <b>Tier 2</b>{" "}
@@ -233,7 +232,9 @@ export default function Immigration() {
           </>
         )}
         {data?.synced_at && ` Last checked ${shortDate(data.synced_at)}; it is refreshed monthly.`}
-      </Typography>
+          </>
+        }
+      />
       <Button component={RouterLink} to="/compare-routes" variant="outlined" size="small" sx={{ mb: 2 }}>
         Compare routes for a job across countries →
       </Button>

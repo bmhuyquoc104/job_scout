@@ -8,6 +8,7 @@ export type JobFacets = components["schemas"]["JobFacets"];
 export type TrendSeries = components["schemas"]["TrendSeries"];
 export type LocationBreakdown = components["schemas"]["LocationBreakdown"];
 export type SourceBreakdown = components["schemas"]["SourceBreakdown"];
+export type CategoryVisaStats = components["schemas"]["CategoryVisaStats"];
 export type GreenListResponse = components["schemas"]["GreenListResponse"];
 export type GreenListRole = components["schemas"]["GreenListRoleItem"];
 export type GreenListChange = components["schemas"]["GreenListChange"];
@@ -16,6 +17,7 @@ export type RoutesResponse = components["schemas"]["RoutesResponse"];
 export type CountryRoutes = components["schemas"]["CountryRoutes"];
 export type JobComparison = components["schemas"]["JobComparison"];
 export type CountryJobStats = components["schemas"]["CountryJobStats"];
+export type CountryVisaStats = components["schemas"]["CountryVisaStats"];
 export type CvSkills = components["schemas"]["CvSkills"];
 export type JobMatch = components["schemas"]["JobMatch"];
 export type JobStatus = "open" | "closed" | "all";
@@ -73,6 +75,10 @@ export function getSources(categoryId: string): Promise<SourceBreakdown> {
   return get(`/api/categories/${categoryId}/stats/sources`);
 }
 
+export function getCategoryVisaStats(categoryId: string): Promise<CategoryVisaStats> {
+  return get(`/api/categories/${categoryId}/stats/visa-sponsorship`);
+}
+
 export function getLocations(categoryId: string): Promise<LocationBreakdown> {
   return get(`/api/categories/${categoryId}/stats/locations`);
 }
@@ -107,19 +113,29 @@ export function getJob(jobId: string): Promise<JobDetail> {
 }
 
 /** Uploads a PDF CV; the server reads it in memory and returns only the IT skills it names. */
-export async function uploadCv(file: File): Promise<string[]> {
+export async function uploadCv(file: File): Promise<CvSkills> {
   const body = new FormData();
   body.append("file", file);
-  return (await parse<CvSkills>(await fetch("/api/cv", { method: "POST", body }))).skills;
+  return parse<CvSkills>(await fetch("/api/cv", { method: "POST", body }));
 }
 
 /** Every open job in a country ranked against the CV skills, best first. */
-export async function getMatches(skills: string[], country: string): Promise<JobMatch[]> {
+export async function getMatches(
+  skills: string[],
+  country: string,
+  years: number | null,
+  options: { limit?: number; visaOnly?: boolean } = {},
+): Promise<JobMatch[]> {
   return parse(
     await fetch("/api/matches", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ skills, country }),
+      body: JSON.stringify({ skills, country, years, limit: options.limit, visa_only: options.visaOnly }),
     }),
   );
+}
+
+/** Open jobs and the ones offering visa sponsorship, per country. */
+export function getVisaStats(): Promise<CountryVisaStats[]> {
+  return get("/api/stats/visa-sponsorship");
 }

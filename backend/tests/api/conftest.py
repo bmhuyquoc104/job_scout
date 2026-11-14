@@ -51,6 +51,7 @@ async def api_context(
                 listed_at=datetime(2026, 10, index + 1, tzinfo=UTC),
                 is_active=index < 2,
                 seniority=("senior", "junior", "senior")[index],
+                visa_sponsor=index == 1,
             )
             for index, (
                 location,

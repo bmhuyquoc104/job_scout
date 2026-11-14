@@ -31,6 +31,7 @@ async def test_job_list_defaults_to_all_jobs_newest_first_and_paginates(
                 "annual_salary_max": None,
                 "listed_at": "2026-10-03T00:00:00Z",
                 "is_active": False,
+                "visa_sponsor": False,
                 "closed_at": "2026-10-20T00:00:00Z",
             }
         ],
@@ -75,6 +76,8 @@ async def test_job_detail_returns_all_csv_fields(
         "trading_name": "Trading 1",
         "listed_at": "2026-10-02T00:00:00Z",
         "is_active": True,
+        "visa_sponsor": True,
+        "required_years": None,
         "closed_at": None,
     }
 
@@ -284,6 +287,7 @@ async def test_bad_sort_and_filter_values_are_validation_errors(
         "min_salary=-1",
         "listed_from=yesterday",
         "salary=maybe",
+        "visa=maybe",
         "source=monster",
     ):
         response = await client.get(f"/api/categories/{category.id}/jobs?{query}")
@@ -324,3 +328,17 @@ async def test_jobs_can_be_filtered_and_sorted_by_source(
 def test_every_stored_job_source_is_a_valid_api_source(source: str) -> None:
     # The job table allows these sources; a source the API type rejects breaks the response.
     assert TypeAdapter(JobSource).validate_python(source) == source
+
+
+async def test_visa_sponsorship_filters_and_sorts(
+    api_context: tuple[AsyncClient, Category, list[Job]],
+) -> None:
+    client, category, _ = api_context
+
+    offered = await _list(client, category, "visa=offered")
+    not_mentioned = await _list(client, category, "visa=not_mentioned&sort=position&order=asc")
+    offered_first = await _list(client, category, "sort=visa&order=desc")
+
+    assert _positions(offered) == ["Engineer 1"]
+    assert _positions(not_mentioned) == ["Engineer 0", "Engineer 2"]
+    assert _positions(offered_first)[0] == "Engineer 1"

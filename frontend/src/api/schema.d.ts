@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/categories/{category_id}/stats/visa-sponsorship": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Category Visa Stats */
+        get: operations["get_category_visa_stats_api_categories__category_id__stats_visa_sponsorship_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sources": {
         parameters: {
             query?: never;
@@ -132,6 +149,23 @@ export interface paths {
         };
         /** Get Job */
         get: operations["get_job_api_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stats/visa-sponsorship": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Visa Sponsorship */
+        get: operations["get_visa_sponsorship_api_stats_visa_sponsorship_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -311,6 +345,16 @@ export interface components {
             /** Active Job Count */
             active_job_count: number;
         };
+        /**
+         * CategoryVisaStats
+         * @description Open jobs in one category and how many of them offer visa sponsorship.
+         */
+        CategoryVisaStats: {
+            /** Total Open */
+            total_open: number;
+            /** Sponsored */
+            sponsored: number;
+        };
         /** CountryJobStats */
         CountryJobStats: {
             /** Country */
@@ -323,6 +367,8 @@ export interface components {
             open_jobs: number;
             /** With Salary */
             with_salary: number;
+            /** Visa Sponsor */
+            visa_sponsor: number;
             /** Median Salary Min */
             median_salary_min: number | null;
             /** Median Salary Max */
@@ -345,6 +391,17 @@ export interface components {
             /** Roles */
             roles: components["schemas"]["RouteRole"][];
         };
+        /** CountryVisaStats */
+        CountryVisaStats: {
+            /** Country */
+            country: string;
+            /** Country Name */
+            country_name: string;
+            /** Open Jobs */
+            open_jobs: number;
+            /** Visa Sponsor */
+            visa_sponsor: number;
+        };
         /**
          * CvSkills
          * @description The IT skills found in an uploaded CV; the page keeps them in the browser.
@@ -352,6 +409,8 @@ export interface components {
         CvSkills: {
             /** Skills */
             skills: string[];
+            /** Years */
+            years?: number | null;
         };
         /** GreenListChange */
         GreenListChange: {
@@ -497,6 +556,10 @@ export interface components {
             listed_at: string | null;
             /** Is Active */
             is_active: boolean;
+            /** Visa Sponsor */
+            visa_sponsor: boolean;
+            /** Required Years */
+            required_years: number | null;
             /** Closed At */
             closed_at?: string | null;
         };
@@ -544,6 +607,8 @@ export interface components {
             listed_at: string | null;
             /** Is Active */
             is_active: boolean;
+            /** Visa Sponsor */
+            visa_sponsor: boolean;
             /** Closed At */
             closed_at?: string | null;
         };
@@ -566,8 +631,14 @@ export interface components {
             salary_label: string;
             /** Score */
             score: number;
+            /** Visa Sponsor */
+            visa_sponsor: boolean;
+            /** Required Years */
+            required_years: number | null;
             /** Missing Skills */
             missing_skills: string[];
+            /** Matched Skills */
+            matched_skills: string[];
         };
         /**
          * LocationBreakdown
@@ -588,6 +659,15 @@ export interface components {
         };
         /** MatchRequest */
         MatchRequest: {
+            /** Years */
+            years?: number | null;
+            /** Limit */
+            limit?: number | null;
+            /**
+             * Visa Only
+             * @default false
+             */
+            visa_only: boolean;
             /** Skills */
             skills: string[];
             /**
@@ -740,7 +820,7 @@ export interface operations {
                 offset?: number;
                 status?: "open" | "closed" | "all";
                 source?: ("seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow") | null;
-                sort?: "position" | "company" | "location" | "arrangement" | "work_type" | "status" | "salary" | "listed" | "source";
+                sort?: "position" | "company" | "location" | "arrangement" | "work_type" | "status" | "salary" | "listed" | "source" | "visa";
                 order?: "asc" | "desc";
                 position?: string | null;
                 company?: string | null;
@@ -748,6 +828,7 @@ export interface operations {
                 arrangement?: string[];
                 work_type?: string[];
                 salary?: "any" | "listed" | "unlisted";
+                visa?: "any" | "offered" | "not_mentioned";
                 min_salary?: number | null;
                 listed_from?: string | null;
                 listed_to?: string | null;
@@ -906,6 +987,37 @@ export interface operations {
             };
         };
     };
+    get_category_visa_stats_api_categories__category_id__stats_visa_sponsorship_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryVisaStats"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_sources_api_sources_get: {
         parameters: {
             query?: never;
@@ -953,6 +1065,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_visa_sponsorship_api_stats_visa_sponsorship_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CountryVisaStats"][];
                 };
             };
         };

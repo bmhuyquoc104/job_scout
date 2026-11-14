@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import subprocess
@@ -310,3 +311,87 @@ async def test_jobs_carry_a_source_and_ids_are_unique_per_source(
     with pytest.raises(asyncpg.CheckViolationError):
         await connection.execute(insert, category["id"], "bogus")
     await connection.execute("DELETE FROM job WHERE external_id = 'same-id'")
+
+
+async def test_visa_sponsor_column_is_backfilled_from_existing_descriptions(
+    connection: asyncpg.Connection, async_test_database_url: str
+) -> None:
+    backend_dir = Path(__file__).resolve().parents[2]
+    env = {**os.environ, "DATABASE_URL": async_test_database_url}
+
+    def alembic(*args: str) -> None:
+        result = subprocess.run(
+            ["uv", "run", "alembic", *args],
+            cwd=backend_dir,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+
+    alembic("downgrade", "f2d6a83b19c7")  # the revision before the visa_sponsor column
+    category_id = await connection.fetchval("SELECT id FROM category WHERE slug = 'ict'")
+    for external_id, description in (
+        ("visa-yes", "Great role. Visa sponsorship available."),
+        ("visa-no", "Must already have the right to work. No sponsorship."),
+    ):
+        await connection.execute(
+            """
+            INSERT INTO job (category_id, external_id, company_name, location, salary_label,
+                             pay_period, position, job_description, url, nzbn, trading_name)
+            VALUES ($1, $2, 'Co', '', '', '', 'Dev', $3, 'https://x', '', '')
+            """,
+            category_id,
+            external_id,
+            description,
+        )
+
+    alembic("upgrade", "head")
+
+    rows = {
+        row["external_id"]: row["visa_sponsor"]
+        for row in await connection.fetch(
+            "SELECT external_id, visa_sponsor FROM job WHERE external_id IN ('visa-yes', 'visa-no')"
+        )
+    }
+    assert rows == {"visa-yes": True, "visa-no": False}
+
+
+async def test_job_analysis_columns_are_backfilled(
+    connection: asyncpg.Connection, async_test_database_url: str
+) -> None:
+    backend_dir = Path(__file__).resolve().parents[2]
+    env = {**os.environ, "DATABASE_URL": async_test_database_url}
+
+    def alembic(*args: str) -> None:
+        result = subprocess.run(
+            ["uv", "run", "alembic", *args],
+            cwd=backend_dir,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+
+    alembic("downgrade", "a7d2f4c91b36")  # the revision before skills and required_years
+    category_id = await connection.fetchval("SELECT id FROM category WHERE slug = 'ict'")
+    await connection.execute(
+        """
+        INSERT INTO job (category_id, external_id, company_name, location, salary_label,
+                         pay_period, position, job_description, url, nzbn, trading_name)
+        VALUES ($1, 'analysis-1', 'Co', '', '', '', 'Senior Python Developer',
+                'FastAPI and Docker. 6+ years experience', 'https://x', '', '')
+        """,
+        category_id,
+    )
+
+    alembic("upgrade", "head")
+
+    row = await connection.fetchrow(
+        "SELECT skills, required_years FROM job WHERE external_id = 'analysis-1'"
+    )
+    assert row is not None
+    assert (json.loads(row["skills"]), row["required_years"]) == (
+        ["docker", "fastapi", "python"],
+        6,
+    )

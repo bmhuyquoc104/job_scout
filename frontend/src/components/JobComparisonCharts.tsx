@@ -38,6 +38,8 @@ export default function JobComparisonCharts({ title }: { title: string }) {
   const byJobs = [...countries].sort((a, b) => b.open_jobs - a.open_jobs);
   const withSalary = countries.filter((item) => item.median_salary_min != null && item.median_salary_max != null);
   const byPay = [...withSalary].sort((a, b) => (b.median_salary_max ?? 0) - (a.median_salary_max ?? 0));
+  const visaRate = (item: CountryJobStats) => (item.open_jobs ? Math.round((1000 * item.visa_sponsor) / item.open_jobs) / 10 : 0);
+  const byVisaRate = [...countries].sort((a, b) => visaRate(b) - visaRate(a));
   const listed = countries.filter((item) => item.open_jobs > 0);
   const percent = (item: CountryJobStats) => Math.round((100 * item.with_salary) / item.open_jobs);
 
@@ -58,7 +60,7 @@ export default function JobComparisonCharts({ title }: { title: string }) {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
         {formatCount(total)} open jobs whose title contains the words of &ldquo;{title}&rdquo;.
       </Typography>
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: 1.5 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", gap: 1.5 }}>
         <ChartShell
           title="Open jobs by country"
           subtitle="Jobs listed now that match the title"
@@ -110,6 +112,28 @@ export default function JobComparisonCharts({ title }: { title: string }) {
               label="Jobs that list a salary data"
               headers={["Country", "With salary", "Open jobs", "Share"]}
               rows={listed.map((item) => [item.country_name, formatCount(item.with_salary), formatCount(item.open_jobs), `${percent(item)}%`])}
+            />
+          }
+        />
+        <ChartShell
+          title="Visa sponsorship rate"
+          subtitle="Share of each country's matching open jobs whose ad mentions visa sponsorship or similar"
+          chart={
+            <HorizontalBarChart
+              title="Visa sponsorship rate"
+              bars={byVisaRate.map((item) => bar(item, visaRate(item)))}
+              total={0}
+              valueText={(entry) => {
+                const stats = countries.find((c) => c.country === entry.key) as CountryJobStats;
+                return `${visaRate(stats)}% (${formatCount(stats.visa_sponsor)} of ${formatCount(stats.open_jobs)})`;
+              }}
+            />
+          }
+          table={
+            <ChartTable
+              label="Visa sponsorship rate data"
+              headers={["Country", "Sponsored", "Open jobs", "Rate"]}
+              rows={byVisaRate.map((item) => [item.country_name, formatCount(item.visa_sponsor), formatCount(item.open_jobs), `${visaRate(item)}%`])}
             />
           }
         />

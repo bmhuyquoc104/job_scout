@@ -7,7 +7,7 @@ from job_scout.categories.models import Category
 from job_scout.core.countries import COUNTRIES
 from job_scout.green_list.routes import distinctive_words
 from job_scout.jobs.models import Job
-from job_scout.jobs.schemas import CountryJobStats, JobComparison
+from job_scout.jobs.schemas import CountryJobStats, CountryVisaStats, JobComparison
 
 
 async def compare_job(session: AsyncSession, title: str) -> JobComparison:
@@ -17,7 +17,13 @@ async def compare_job(session: AsyncSession, title: str) -> JobComparison:
     words = sorted(distinctive_words(title))
     matches = [Job.position.ilike(f"%{word}%") for word in words]
     base = (
-        select(Category.country, Job.source, func.count(), func.count(Job.annual_salary_min))
+        select(
+            Category.country,
+            Job.source,
+            func.count(),
+            func.count(Job.annual_salary_min),
+            func.count().filter(Job.visa_sponsor.is_(True)),
+        )
         .join(Category, Category.id == Job.category_id)
         .where(Job.is_active.is_(True), *matches)
         .group_by(Category.country, Job.source)
@@ -33,12 +39,13 @@ async def compare_job(session: AsyncSession, title: str) -> JobComparison:
         .group_by(Category.country)
     )
     by_source: dict[str, dict[str, int]] = {}
-    totals: dict[str, list[int]] = {}
-    for country, source, count, with_salary in (await session.execute(base)).all():
+    totals: dict[str, list[int]] = {}  # per country: open jobs, with salary, sponsored
+    for country, source, count, with_salary, sponsored in (await session.execute(base)).all():
         by_source.setdefault(country, {})[source] = count
-        total = totals.setdefault(country, [0, 0])
+        total = totals.setdefault(country, [0, 0, 0])
         total[0] += count
         total[1] += with_salary
+        total[2] += sponsored
     medians = {
         country: (round(low), round(high))
         for country, low, high in (await session.execute(salaries)).all()
@@ -50,8 +57,9 @@ async def compare_job(session: AsyncSession, title: str) -> JobComparison:
                 country=code,
                 country_name=country.name,
                 currency=country.currency,
-                open_jobs=totals.get(code, [0, 0])[0],
-                with_salary=totals.get(code, [0, 0])[1],
+                open_jobs=totals.get(code, [0, 0, 0])[0],
+                with_salary=totals.get(code, [0, 0, 0])[1],
+                visa_sponsor=totals.get(code, [0, 0, 0])[2],
                 median_salary_min=medians[code][0] if code in medians else None,
                 median_salary_max=medians[code][1] if code in medians else None,
                 by_source=dict(sorted(by_source.get(code, {}).items())),
@@ -59,3 +67,29 @@ async def compare_job(session: AsyncSession, title: str) -> JobComparison:
             for code, country in COUNTRIES.items()
         ],
     )
+
+
+async def visa_by_country(session: AsyncSession) -> list[CountryVisaStats]:
+    """Open jobs and how many of them offer visa sponsorship, in every country."""
+    rows = {
+        country: (total, sponsored)
+        for country, total, sponsored in (
+            await session.execute(
+                select(
+                    Category.country, func.count(), func.count().filter(Job.visa_sponsor.is_(True))
+                )
+                .join(Category, Category.id == Job.category_id)
+                .where(Job.is_active.is_(True))
+                .group_by(Category.country)
+            )
+        ).all()
+    }
+    return [
+        CountryVisaStats(
+            country=code,
+            country_name=country.name,
+            open_jobs=rows.get(code, (0, 0))[0],
+            visa_sponsor=rows.get(code, (0, 0))[1],
+        )
+        for code, country in COUNTRIES.items()
+    ]

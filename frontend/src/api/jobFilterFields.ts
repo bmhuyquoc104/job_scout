@@ -12,6 +12,7 @@ export const FILTER_FIELDS = [
   "salary",
   "listed",
   "source",
+  "visa",
 ] as const;
 export type FilterField = (typeof FILTER_FIELDS)[number];
 
@@ -25,6 +26,7 @@ const KEYS: Record<FilterField, (keyof JobParams)[]> = {
   salary: ["salary", "min_salary"],
   listed: ["listed_from", "listed_to"],
   source: ["source"],
+  visa: ["visa"],
 };
 
 export const FIELD_LABELS: Record<FilterField, string> = {
@@ -37,6 +39,7 @@ export const FIELD_LABELS: Record<FilterField, string> = {
   salary: "Salary",
   listed: "Date",
   source: "Source",
+  visa: "Visa",
 };
 
 export function isFilterField(field: string): field is FilterField {
@@ -61,6 +64,7 @@ export function clearAllFilters(): Partial<JobParams> {
 
 const STATUS_LABELS = { open: "Open", closed: "Closed", all: "All" };
 const SALARY_LABELS = { any: "any", listed: "has a figure", unlisted: "no figure" };
+const VISA_LABELS = { any: "any", offered: "offered", not_mentioned: "not mentioned" };
 
 /** Short text for the active-filter chip of a column. */
 export function describeFilter(params: JobParams, field: FilterField): string {
@@ -83,6 +87,8 @@ export function describeFilter(params: JobParams, field: FilterField): string {
         .join(", ");
     case "source":
       return params.source ? sourceLabel(params.source) : "";
+    case "visa":
+      return VISA_LABELS[params.visa];
     case "listed":
       return `${params.listed_from || "…"} to ${params.listed_to || "…"}`;
   }

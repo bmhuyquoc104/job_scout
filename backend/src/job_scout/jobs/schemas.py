@@ -18,6 +18,7 @@ JobSort = Literal[
     "salary",
     "listed",
     "source",
+    "visa",
 ]
 
 
@@ -40,6 +41,7 @@ class JobQuery(BaseModel):
     arrangement: list[str] = Field(default_factory=list, max_length=10)
     work_type: list[str] = Field(default_factory=list, max_length=10)
     salary: Literal["any", "listed", "unlisted"] = "any"
+    visa: Literal["any", "offered", "not_mentioned"] = "any"
     # Minimum estimated annual NZD: the top of the job's range must reach it.
     min_salary: int | None = Field(None, ge=0, le=10_000_000)
     # Inclusive listing dates (UTC).
@@ -72,6 +74,7 @@ class JobListItem(BaseModel):
     annual_salary_max: int | None
     listed_at: datetime | None
     is_active: bool
+    visa_sponsor: bool
     # When the listing was last seen closing; only set while the job is closed.
     closed_at: datetime | None = None
 
@@ -107,6 +110,9 @@ class JobDetail(BaseModel):
     annual_salary_max: int | None
     listed_at: datetime | None
     is_active: bool
+    visa_sponsor: bool
+    # Years of experience the ad asks for (stated, or implied by the title); None if unknown.
+    required_years: int | None
     closed_at: datetime | None = None
 
 
@@ -169,6 +175,7 @@ class CountryJobStats(BaseModel):
     currency: str  # salaries are in each country's own currency; they are not converted
     open_jobs: int
     with_salary: int  # open jobs with a salary estimate
+    visa_sponsor: int  # open jobs whose ad offers visa sponsorship
     # Median of the annual salary estimates, in the country's currency; None without any.
     median_salary_min: int | None
     median_salary_max: int | None
@@ -178,3 +185,17 @@ class CountryJobStats(BaseModel):
 class JobComparison(BaseModel):
     title: str
     countries: list[CountryJobStats]
+
+
+class CountryVisaStats(BaseModel):
+    country: str
+    country_name: str
+    open_jobs: int
+    visa_sponsor: int  # open jobs whose ad offers visa sponsorship
+
+
+class CategoryVisaStats(BaseModel):
+    """Open jobs in one category and how many of them offer visa sponsorship."""
+
+    total_open: int
+    sponsored: int

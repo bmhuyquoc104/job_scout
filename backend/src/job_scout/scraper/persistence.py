@@ -12,6 +12,7 @@ from job_scout.categories.models import Category
 from job_scout.categories.service import require_enabled_category
 from job_scout.core.errors import ERROR_CATALOG, ErrorCode
 from job_scout.jobs.models import Job, JobEvent, JobEventType
+from job_scout.matching.fit import analyze_job
 from job_scout.scraper.models import JobDraft
 from job_scout.scraper.normalization import NormalizedListing, classify_seniority, parse_salary
 
@@ -127,6 +128,7 @@ async def save_outcome(
             "annual_salary_min": salary_min,
             "annual_salary_max": salary_max,
             "seniority": classify_seniority(listing.position),
+            **analyze_job(listing.position, enriched_data["job_description"]),
             "job_description": enriched_data["job_description"],
             "nzbn": enriched_data["nzbn"],
             "trading_name": enriched_data["trading_name"],
@@ -150,6 +152,9 @@ async def save_outcome(
                 "annual_salary_min",
                 "annual_salary_max",
                 "seniority",
+                "visa_sponsor",
+                "skills",
+                "required_years",
                 "is_active",
                 "last_seen_at",
                 "updated_at",

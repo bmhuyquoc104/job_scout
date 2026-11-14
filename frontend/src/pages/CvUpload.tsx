@@ -1,8 +1,9 @@
 import { useState, type DragEvent } from "react";
-import { Alert, Box, Button, Chip, LinearProgress, Paper, Stack, SvgIcon, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, LinearProgress, Paper, Stack, SvgIcon, TextField, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { ApiError, uploadCv } from "../api/client";
-import { loadCvSkills, saveCvSkills } from "../utils/cvSkills";
+import PageHeader from "../components/PageHeader";
+import { loadCvSkills, loadCvYears, saveCvSkills } from "../utils/cvSkills";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 // Material "upload file" icon path, inlined to avoid a whole icon package.
@@ -16,6 +17,7 @@ const STEPS = [
 
 export default function CvUpload() {
   const [skills, setSkills] = useState(loadCvSkills);
+  const [years, setYears] = useState<number | null>(loadCvYears);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -28,8 +30,9 @@ export default function CvUpload() {
     }
     setLoading(true);
     try {
-      const found = await uploadCv(file);
-      saveCvSkills(found);
+      const { skills: found, years: foundYears } = await uploadCv(file);
+      saveCvSkills(found, foundYears ?? null);
+      setYears(foundYears ?? null);
       setSkills(found);
     } catch (reason) {
       setError(reason instanceof ApiError ? reason.message : "Unable to read your CV.");
@@ -46,16 +49,12 @@ export default function CvUpload() {
   }
 
   return (
-    <Box component="main" sx={{ flex: 1, p: 3, overflow: "auto" }}>
+    <Box component="main" sx={{ flex: 1, minWidth: 0, minHeight: 0, p: { xs: 2, md: 3 }, overflow: "auto" }}>
       <Stack spacing={3} sx={{ maxWidth: 720 }}>
-        <Box>
-          <Typography variant="h4" component="h1" gutterBottom>
-            My CV
-          </Typography>
-          <Typography color="text.secondary">
-            Upload your CV once and see which open jobs fit it, and what to add to improve the rest.
-          </Typography>
-        </Box>
+        <PageHeader
+          title="My CV"
+          subtitle="Upload your CV once to see which open jobs fit it, and what to add to improve the rest."
+        />
 
         <Box
           component="label"
@@ -117,6 +116,20 @@ export default function CvUpload() {
               These are what jobs are matched on. If one is missing, check that your CV names it in
               text.
             </Typography>
+            <TextField
+              label="Years of experience"
+              type="number"
+              size="small"
+              value={years ?? ""}
+              onChange={(event) => {
+                const next = event.target.value === "" ? null : Math.min(60, Math.max(0, Math.floor(Number(event.target.value))));
+                setYears(next);
+                saveCvSkills(skills, next);
+              }}
+              helperText={years === null ? "Not found in your CV. Add it so jobs asking for more experience rank lower." : "Read from your CV; change it if it is wrong."}
+              slotProps={{ htmlInput: { min: 0, max: 60 } }}
+              sx={{ mb: 2, width: 280 }}
+            />
             <Stack direction="row" gap={0.75} flexWrap="wrap">
               {skills.map((skill) => (
                 <Chip key={skill} size="small" label={skill} />
@@ -131,6 +144,7 @@ export default function CvUpload() {
                 onClick={() => {
                   saveCvSkills(null);
                   setSkills([]);
+                  setYears(null);
                 }}
               >
                 Remove saved CV
@@ -159,7 +173,7 @@ export default function CvUpload() {
         )}
 
         <Typography variant="caption" color="text.secondary">
-          Privacy: the PDF is read in memory and discarded. Only the skill names above are kept, in this
+          Privacy: the PDF is read in memory and discarded. Only the skill names and years above are kept, in this
           browser, so they are gone if you clear site data or use another device.
         </Typography>
       </Stack>

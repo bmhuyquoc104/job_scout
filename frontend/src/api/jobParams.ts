@@ -9,9 +9,11 @@ export type SortKey =
   | "status"
   | "salary"
   | "listed"
-  | "source";
+  | "source"
+  | "visa";
 export type SortOrder = "asc" | "desc";
 export type SalaryFilter = "any" | "listed" | "unlisted";
+export type VisaFilter = "any" | "offered" | "not_mentioned";
 
 /** Everything that shapes the jobs table. It lives in the URL, so views can be shared and bookmarked. */
 export interface JobParams {
@@ -27,6 +29,7 @@ export interface JobParams {
   work_type: string[];
   salary: SalaryFilter;
   min_salary: string;
+  visa: VisaFilter;
   listed_from: string;
   listed_to: string;
   offset: number;
@@ -46,6 +49,7 @@ export const DEFAULT_PARAMS: JobParams = {
   work_type: [],
   salary: "any",
   min_salary: "",
+  visa: "any",
   listed_from: "",
   listed_to: "",
   offset: 0,
@@ -62,9 +66,11 @@ const SORT_KEYS: readonly SortKey[] = [
   "salary",
   "listed",
   "source",
+  "visa",
 ];
 const ORDERS: readonly SortOrder[] = ["asc", "desc"];
 const SALARIES: readonly SalaryFilter[] = ["any", "listed", "unlisted"];
+const VISAS: readonly VisaFilter[] = ["any", "offered", "not_mentioned"];
 
 function pick<T extends string>(value: string | null, allowed: readonly T[], fallback: T): T {
   return allowed.includes(value as T) ? (value as T) : fallback;
@@ -83,6 +89,7 @@ export function parseParams(search: URLSearchParams): JobParams {
     work_type: search.getAll("work_type"),
     salary: pick(search.get("salary"), SALARIES, DEFAULT_PARAMS.salary),
     min_salary: search.get("min_salary") ?? "",
+    visa: pick(search.get("visa"), VISAS, DEFAULT_PARAMS.visa),
     listed_from: search.get("listed_from") ?? "",
     listed_to: search.get("listed_to") ?? "",
     offset: Math.max(0, Number(search.get("offset")) || 0),
@@ -118,6 +125,7 @@ export function hasActiveFilters(params: JobParams): boolean {
     params.work_type.length > 0 ||
     params.salary !== DEFAULT_PARAMS.salary ||
     params.min_salary !== "" ||
+    params.visa !== DEFAULT_PARAMS.visa ||
     params.listed_from !== "" ||
     params.listed_to !== ""
   );

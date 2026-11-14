@@ -1,7 +1,7 @@
-import { useMemo } from "react";
-import { Alert, Box, Link, Typography } from "@mui/material";
-import { DataGrid, type GridPaginationModel, type GridSortModel } from "@mui/x-data-grid";
-import { Link as RouterLink, useParams, useSearchParams } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Alert, Box, useMediaQuery } from "@mui/material";
+import { DataGrid, type GridColumnVisibilityModel, type GridPaginationModel, type GridSortModel } from "@mui/x-data-grid";
+import { useParams, useSearchParams } from "react-router-dom";
 import { getCategoryJobs, getJobFacets } from "../api/client";
 import {
   PAGE_SIZE,
@@ -15,6 +15,8 @@ import {
 import { useApi } from "../api/useApi";
 import ActiveFilters from "../components/ActiveFilters";
 import CategorySwitcher from "../components/CategorySwitcher";
+import FilterBar from "../components/FilterBar";
+import PageHeader from "../components/PageHeader";
 import { useCountry } from "../country/CountryContext";
 import ImmigrationRoutes from "../components/ImmigrationRoutes";
 import JobColumnMenu from "../components/JobColumnMenu";
@@ -24,6 +26,19 @@ import { jobColumns } from "../components/jobColumns";
 export default function Jobs() {
   const { categoryId = "" } = useParams();
   const { country } = useCountry();
+  // Source, arrangement and work type fit only on wide screens; their filters stay in the bar above.
+  const wide = useMediaQuery("(min-width:1500px)");
+  const compact = useMediaQuery("(max-width:700px)"); // phones: company and location move under the title
+  const [chosenColumns, setChosenColumns] = useState<GridColumnVisibilityModel | null>(null);
+  const columnVisibility = chosenColumns ?? {
+    source: wide,
+    arrangement: wide,
+    work_type: wide,
+    company: !compact,
+    location: !compact,
+    salary: !compact,
+    listed: !compact,
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const params = useMemo(() => parseParams(searchParams), [searchParams]);
   const query = toApiQuery(params);
@@ -51,15 +66,18 @@ export default function Jobs() {
     <JobTableContext.Provider value={{ params, facets, update }}>
       <Box
         component="main"
-        sx={{ display: "flex", flex: 1, minWidth: 0, minHeight: 0, flexDirection: "column", p: 3, overflow: "auto" }}
+        sx={{ display: "flex", flex: 1, minWidth: 0, minHeight: 0, flexDirection: "column", p: { xs: 2, md: 3 }, overflow: "auto" }}
       >
-        <Link component={RouterLink} to="/" underline="hover" sx={{ mb: 1.75, alignSelf: "flex-start" }}>
-          ← Dashboard
-        </Link>
         <CategorySwitcher categoryId={categoryId} view="postings" />
-        <Typography component="h1" variant="h4" sx={{ mt: 0.5, mb: 2, fontSize: 24, fontWeight: 700 }}>
-          {country === "NZ" ? "Accredited jobs" : "Jobs"}
-        </Typography>
+        <PageHeader
+          title={country === "NZ" ? "Accredited jobs" : "Jobs"}
+          subtitle={
+            country === "NZ"
+              ? "Open and closed ads from employers accredited by Immigration New Zealand."
+              : "Open and closed ads for this category."
+          }
+        />
+        <FilterBar />
         <ActiveFilters />
         {error && <Alert severity="error">{error}</Alert>}
         {params.position.trim() && <ImmigrationRoutes title={params.position.trim()} />}
@@ -88,6 +106,8 @@ export default function Jobs() {
               if (model.page * PAGE_SIZE !== params.offset) update({ offset: model.page * PAGE_SIZE });
             }}
             pageSizeOptions={[PAGE_SIZE]}
+            columnVisibilityModel={columnVisibility}
+            onColumnVisibilityModelChange={setChosenColumns}
             slots={{ columnMenu: JobColumnMenu }}
             slotProps={{ row: { "data-testid": "job-row" } as object }}
             localeText={{ noRowsLabel: hasActiveFilters(params) ? "No jobs match these filters." : "No jobs found." }}

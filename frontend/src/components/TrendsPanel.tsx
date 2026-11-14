@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Alert, Box, MenuItem, Paper, TextField, Typography } from "@mui/material";
-import { getLocations, getSources, getTrends, SOURCE_LABELS, sourceLabel } from "../api/client";
+import { Alert, Box, LinearProgress, MenuItem, Paper, TextField, Typography } from "@mui/material";
+import { getCategoryVisaStats, getLocations, getSources, getTrends, SOURCE_LABELS, sourceLabel } from "../api/client";
 import { useApi } from "../api/useApi";
 import ChartCard from "./charts/ChartCard";
 import ChartShell from "./charts/ChartShell";
@@ -75,6 +75,12 @@ export default function TrendsPanel({ categoryId }: { categoryId: string }) {
   }));
   const sourceTotal = sourceData?.total_open ?? 0;
 
+  const { data: visa } = useApi(() => getCategoryVisaStats(categoryId), [categoryId], "Unable to load visa sponsorship.");
+  const visaRate = visa?.total_open ? Math.round((1000 * visa.sponsored) / visa.total_open) / 10 : 0;
+  const visaBars: BarItem[] = [
+    { key: "offered", label: "Offers sponsorship", value: visa?.sponsored ?? 0, color: chartColors.primary },
+    { key: "other", label: "Not mentioned", value: (visa?.total_open ?? 0) - (visa?.sponsored ?? 0), color: chartColors.seniority.unspecified },
+  ];
   const { data: locations } = useApi(() => getLocations(categoryId), [categoryId], "Unable to load locations.");
   const regions = locations?.regions ?? [];
   const otherRegions = regions.slice(TOP_REGIONS);
@@ -117,7 +123,11 @@ export default function TrendsPanel({ categoryId }: { categoryId: string }) {
               value={formatCount(last.total_open)}
               note={points.length > 1 ? `${change >= 0 ? "+" : ""}${formatCount(change)} since ${formatLongDay(first.date)}` : undefined}
             />
-            <StatTile label="New in period" value={formatCount(newTotal)} />
+            <StatTile
+              label="New in period"
+              value={formatCount(newTotal)}
+              note={data?.history_starts && points.length < days ? "Tracking is new: the first day counts every job as new" : undefined}
+            />
             <StatTile label="Closed in period" value={formatCount(closedTotal)} />
           </Box>
           {data?.history_starts && points.length < days && (
@@ -126,7 +136,7 @@ export default function TrendsPanel({ categoryId }: { categoryId: string }) {
               adds a day.
             </Typography>
           )}
-          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: 1.5 }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", gap: 1.5 }}>
             <ChartCard
               title="Open jobs"
               subtitle="Jobs listed at the end of each day"
@@ -165,6 +175,28 @@ export default function TrendsPanel({ categoryId }: { categoryId: string }) {
                   label="Open jobs by source data"
                   headers={["Source", "Jobs", "Share"]}
                   rows={sourceSlices.map((slice) => [slice.label, formatCount(slice.value), formatShare(slice.value, sourceTotal)])}
+                />
+              }
+            />
+            <ChartShell
+              title="Open jobs offering visa sponsorship"
+              subtitle="Ads that mention visa sponsorship or similar, as of now"
+              chart={
+                <Box aria-label="Share of open jobs offering visa sponsorship" sx={{ py: 1 }}>
+                  <Typography variant="h3" component="p" sx={{ fontWeight: 700 }}>
+                    {visaRate}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    {formatCount(visa?.sponsored ?? 0)} of {formatCount(visa?.total_open ?? 0)} open jobs mention visa sponsorship
+                  </Typography>
+                  <LinearProgress variant="determinate" color="success" value={visaRate} sx={{ height: 10, borderRadius: 5 }} />
+                </Box>
+              }
+              table={
+                <ChartTable
+                  label="Open jobs offering visa sponsorship data"
+                  headers={["Visa sponsorship", "Jobs", "Share"]}
+                  rows={visaBars.map((bar) => [bar.label, formatCount(bar.value), formatShare(bar.value, visa?.total_open ?? 0)])}
                 />
               }
             />

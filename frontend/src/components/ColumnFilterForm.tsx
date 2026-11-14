@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Box, Button, Checkbox, FormControlLabel, FormGroup, Radio, RadioGroup, TextField, Typography } from "@mui/material";
 import { SOURCE_LABELS, type JobSource, type JobStatus } from "../api/client";
 import { FIELD_LABELS, clearFilter, isFilterActive, type FilterField } from "../api/jobFilterFields";
-import type { SalaryFilter } from "../api/jobParams";
+import type { SalaryFilter, VisaFilter } from "../api/jobParams";
 import DebouncedField from "./DebouncedField";
 import { useJobTable } from "./JobTableContext";
 
@@ -10,6 +10,11 @@ const STATUS_OPTIONS: { value: JobStatus; label: string }[] = [
   { value: "all", label: "All" },
   { value: "open", label: "Open" },
   { value: "closed", label: "Closed" },
+];
+const VISA_OPTIONS: { value: VisaFilter; label: string }[] = [
+  { value: "any", label: "Any" },
+  { value: "offered", label: "Offered" },
+  { value: "not_mentioned", label: "Not mentioned" },
 ];
 const SALARY_OPTIONS: { value: SalaryFilter; label: string }[] = [
   { value: "any", label: "Any" },
@@ -72,6 +77,15 @@ export default function ColumnFilterForm({ field }: { field: FilterField }) {
         <RadioGroup value={params.source} onChange={(event) => update({ source: event.target.value as JobSource | "" })}>
           {[["", "All sources"], ...Object.entries(SOURCE_LABELS)].map(([value, label]) => (
             <FormControlLabel key={value} value={value} label={label} control={<Radio size="small" />} />
+          ))}
+        </RadioGroup>
+      );
+      break;
+    case "visa":
+      control = (
+        <RadioGroup value={params.visa} onChange={(event) => update({ visa: event.target.value as VisaFilter })}>
+          {VISA_OPTIONS.map((option) => (
+            <FormControlLabel key={option.value} value={option.value} label={option.label} control={<Radio size="small" />} />
           ))}
         </RadioGroup>
       );

@@ -25,6 +25,8 @@ export default function AppRoutes() {
       <Route path="/green-list" element={<Navigate to="/immigration" replace />} />
       <Route path="/cv" element={<CvUpload />} />
       <Route path="/recommended-jobs" element={<RecommendedJobs />} />
+      <Route path="/top-jobs" element={<Navigate to="/recommended-jobs" replace />} />
+      <Route path="/top-visa-jobs" element={<Navigate to="/recommended-jobs?visa=1" replace />} />
       <Route path="/jobs/:jobId" element={<JobDetailPage />} />
       <Route
         path="*"

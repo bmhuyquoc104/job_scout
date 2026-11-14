@@ -1,4 +1,4 @@
-import { Box, Chip, Link, Typography } from "@mui/material";
+import { Box, Chip, Link, Typography, useMediaQuery } from "@mui/material";
 import type { GridColDef } from "@mui/x-data-grid";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { sourceLabel, type JobListItem } from "../api/client";
@@ -9,6 +9,7 @@ import { useJobTable } from "./JobTableContext";
 import StatusChip from "./StatusChip";
 
 function PositionCell({ job }: { job: JobListItem }) {
+  const compact = useMediaQuery("(max-width:700px)");
   const location = useLocation();
   return (
     <Box>
@@ -24,6 +25,11 @@ function PositionCell({ job }: { job: JobListItem }) {
       <Box>
         <Chip size="small" variant="outlined" label={sourceLabel(job.source)} sx={{ height: 18, fontSize: 11 }} />
       </Box>
+      {compact && (
+        <Typography variant="caption" color="text.secondary" display="block">
+          {[job.company_name, job.location].filter(Boolean).join(" · ")}
+        </Typography>
+      )}
     </Box>
   );
 }
@@ -47,9 +53,9 @@ function column(field: FilterField, rest: Omit<GridColDef<JobListItem>, "field">
 
 /** Field names double as the API's sort keys, so a sort click maps straight to `?sort=`. */
 export const jobColumns: GridColDef<JobListItem>[] = [
-  column("position", { flex: 1.6, minWidth: 190, renderCell: ({ row }) => <PositionCell job={row} /> }),
+  column("position", { flex: 1.6, minWidth: 170, renderCell: ({ row }) => <PositionCell job={row} /> }),
   column("status", {
-    width: 110,
+    width: 100,
     renderCell: ({ row }) => (
       <Box>
         <StatusChip isActive={row.is_active} />
@@ -61,14 +67,14 @@ export const jobColumns: GridColDef<JobListItem>[] = [
       </Box>
     ),
   }),
-  column("company", { flex: 1, minWidth: 130, valueGetter: (_, row) => row.company_name }),
+  column("company", { flex: 1, minWidth: 110, valueGetter: (_, row) => row.company_name }),
   column("source", { width: 150, valueGetter: (_, row) => sourceLabel(row.source) }),
-  column("location", { flex: 1.2, minWidth: 140, valueGetter: (_, row) => row.location || "Not listed" }),
+  column("location", { flex: 1.2, minWidth: 120, valueGetter: (_, row) => row.location || "Not listed" }),
   column("arrangement", { width: 142, valueGetter: (_, row) => row.work_arrangements.join(", ") || "Not listed" }),
   column("work_type", { width: 125, valueGetter: (_, row) => row.work_types.join(", ") || "Not listed" }),
   column("salary", {
     flex: 1.2,
-    minWidth: 150,
+    minWidth: 140,
     renderCell: ({ row }) => {
       const estimate = formatAnnualRange(
         row.annual_salary_min,
@@ -86,6 +92,11 @@ export const jobColumns: GridColDef<JobListItem>[] = [
         </Box>
       );
     },
+  }),
+  column("visa", {
+    width: 120,
+    renderCell: ({ row }) =>
+      row.visa_sponsor ? <Chip size="small" color="success" variant="outlined" label="Offered" /> : "Not mentioned",
   }),
   column("listed", { width: 110, valueGetter: (_, row) => formatRelativeDate(row.listed_at) }),
 ];

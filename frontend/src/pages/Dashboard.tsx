@@ -1,99 +1,101 @@
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
+import { Alert, Box, CircularProgress, Typography } from "@mui/material";
+import { getVisaStats } from "../api/client";
+import { useApi } from "../api/useApi";
+import EntryCard from "../components/EntryCard";
+import PageHeader from "../components/PageHeader";
 import { useCountry } from "../country/CountryContext";
 
 const TOOLS = [
-  {
-    to: "/compare-routes",
-    title: "Compare immigration routes for a job",
-    text: "Pick a job and see each country's priority list and routes.",
-  },
-  {
-    to: "/analytics",
-    title: "Analytics: compare a job across countries",
-    text: "Charts of open jobs, pay and sources for one job in every country.",
-  },
+  { to: "/recommended-jobs", title: "Recommended jobs", text: "Open jobs ranked against your CV, in every country." },
+  { to: "/recommended-jobs?visa=1", title: "Jobs with visa sponsorship", text: "Your best matches among ads that offer sponsorship." },
+  { to: "/analytics", title: "Compare a job across countries", text: "Open jobs, pay and sources for one job title." },
+  { to: "/compare-routes", title: "Compare immigration routes", text: "Each country's priority list and routes for a job." },
 ];
 
+const GRID = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }, gap: 1.5 };
+
+function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <Box component="section" sx={{ mb: 4 }}>
+      <Typography variant="h5" component="h2">
+        {title}
+      </Typography>
+      {hint && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+          {hint}
+        </Typography>
+      )}
+      <Box sx={{ mt: 1.5 }}>{children}</Box>
+    </Box>
+  );
+}
+
 export default function Dashboard() {
-  const { countryCategories: categories, countries, country, setCountry, error, loading } = useCountry();
+  const { categories, countryCategories, countries, country, countryName, setCountry, error, loading } = useCountry();
+  const { data: visa } = useApi(getVisaStats, [], "Unable to load visa sponsorship counts.");
 
   return (
-    <Box component="main" sx={{ flex: 1, minHeight: 0, p: 3, overflow: "auto" }}>
-      <Typography color="primary" variant="overline" fontWeight={700} letterSpacing={1}>
-        Dashboard
-      </Typography>
-      <Typography component="h1" variant="h4" sx={{ mt: 0.5, mb: 2.25, fontSize: 24, fontWeight: 700 }}>
-        Compare across countries
-      </Typography>
-      {/* These cover every country at once, so they sit above the country switch below. */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 500px))", gap: 1.5, mb: 3.5 }}>
-        {TOOLS.map((tool) => (
-          <Card key={tool.to} variant="outlined">
-            <CardContent>
-              <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between" gap={2}>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight={700}>{tool.title}</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{tool.text}</Typography>
-                </Box>
-                <Button component={RouterLink} to={tool.to} variant="contained" sx={{ flex: "none" }}>
-                  Open
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
-      <Typography component="h2" variant="h5" sx={{ mb: 2.25, fontSize: 20, fontWeight: 700 }}>
-        Job categories
-      </Typography>
-      {countries.length > 1 && (
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          color="primary"
-          value={country}
-          aria-label="Country"
-          onChange={(_, next: string | null) => next && setCountry(next)}
-          sx={{ mb: 2.25 }}
-        >
-          {countries.map((option) => (
-            <ToggleButton key={option.code} value={option.code} sx={{ textTransform: "none", px: 2 }}>
-              {option.name}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-      )}
+    <Box component="main" sx={{ flex: 1, minWidth: 0, minHeight: 0, p: { xs: 2, md: 3 }, overflow: "auto" }}>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Open jobs and immigration routes across countries. Pick a country to browse its jobs."
+      />
       {loading && <CircularProgress aria-label="Loading categories" size={24} />}
       {error && <Alert severity="error">{error}</Alert>}
-      {!loading && !error && categories.length === 0 && (
-        <Typography color="text.secondary">No categories available.</Typography>
-      )}
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 500px))", gap: 1.5 }}>
-        {categories.map((category) => (
-          <Card key={category.id} variant="outlined">
-            <CardContent>
-              <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between" gap={2}>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight={700}>{category.name}</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    {category.active_job_count.toLocaleString()} open jobs
+
+      <Section title="Countries at a glance" hint="Open jobs now, and how many ads mention visa sponsorship.">
+        <Box sx={GRID}>
+          {countries.map((option) => {
+            const stats = visa?.find((item) => item.country === option.code);
+            const first = categories.find((category) => category.country === option.code);
+            return (
+              <EntryCard
+                key={option.code}
+                to={first ? `/categories/${first.id}` : "/"}
+                title={option.name}
+                highlighted={option.code === country}
+                onClick={() => setCountry(option.code)}
+              >
+                <Typography variant="h5" component="p">
+                  {stats ? stats.open_jobs.toLocaleString() : "…"}
+                  <Typography component="span" variant="body2" color="text.secondary">
+                    {" "}open jobs
                   </Typography>
-                </Box>
-                <Button
-                  component={RouterLink}
-                  to={`/categories/${category.id}`}
-                  variant="contained"
-                  color="secondary"
-                  sx={{ flex: "none" }}
-                >
-                  View jobs
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
+                </Typography>
+                {stats && stats.open_jobs > 0 && (
+                  <Typography variant="caption" color="success.main" component="p" sx={{ mt: 0.75 }}>
+                    {stats.visa_sponsor.toLocaleString()} offer visa sponsorship ({((100 * stats.visa_sponsor) / stats.open_jobs).toFixed(1)}%)
+                  </Typography>
+                )}
+              </EntryCard>
+            );
+          })}
+        </Box>
+      </Section>
+
+      <Section title="Tools" hint="Compare countries and match jobs to your CV.">
+        <Box sx={GRID}>
+          {TOOLS.map((tool) => (
+            <EntryCard key={tool.to} {...tool} />
+          ))}
+        </Box>
+      </Section>
+
+      <Section title={`Job categories in ${countryName}`}>
+        {!loading && !error && countryCategories.length === 0 && (
+          <Typography color="text.secondary">No categories available.</Typography>
+        )}
+        <Box sx={GRID}>
+          {countryCategories.map((category) => (
+            <EntryCard
+              key={category.id}
+              to={`/categories/${category.id}`}
+              title={category.name}
+              text={`${category.active_job_count.toLocaleString()} open jobs`}
+            />
+          ))}
+        </Box>
+      </Section>
     </Box>
   );
 }

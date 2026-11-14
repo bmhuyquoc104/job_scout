@@ -1,4 +1,6 @@
 from collections.abc import AsyncIterator
+from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -9,6 +11,8 @@ from job_scout.categories.models import Category
 from job_scout.database import get_session
 from job_scout.jobs.models import Job
 from job_scout.main import app
+from job_scout.matching.fit import analyze_job, cv_years, required_years
+from job_scout.matching.service import rank_jobs
 
 
 def make_pdf(text: str) -> bytes:
@@ -50,6 +54,7 @@ async def match_client(async_test_database_url: str) -> AsyncIterator[AsyncClien
                 location="Auckland",
                 position=position,
                 job_description=description,
+                **analyze_job(position, description),
                 url=f"https://www.seek.co.nz/job/{external_id}",
                 is_active=active,
             )
@@ -72,6 +77,7 @@ async def match_client(async_test_database_url: str) -> AsyncIterator[AsyncClien
                 location="Sydney NSW",
                 position="Python Developer",
                 job_description="FastAPI PostgreSQL Docker",
+                **analyze_job("Python Developer", "FastAPI PostgreSQL Docker"),
                 url="https://www.seek.com.au/job/au",
             )
         )
@@ -140,7 +146,7 @@ async def test_cv_upload_returns_its_distinct_words(match_client: AsyncClient) -
     response = await upload(match_client, make_pdf("Python developer, python FastAPI"))
 
     assert response.status_code == 200
-    assert response.json() == {"skills": ["fastapi", "python"]}
+    assert response.json() == {"skills": ["fastapi", "python"], "years": None}
 
 
 async def test_non_pdf_upload_is_rejected(match_client: AsyncClient) -> None:
@@ -162,3 +168,137 @@ async def test_pdf_without_text_is_rejected(match_client: AsyncClient) -> None:
 
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "cv_unreadable"
+
+
+def job(position: str, description: str = "Python FastAPI Docker"):
+    return SimpleNamespace(
+        id=uuid4(),
+        position=position,
+        company_name="Co",
+        source="seek",
+        location="Auckland",
+        salary_label="",
+        **analyze_job(position, description),
+    )
+
+
+def score_of(position: str, description: str = "Python FastAPI Docker", years=None) -> int:
+    return rank_jobs({"python", "fastapi", "docker"}, [job(position, description)], years)[0].score
+
+
+def test_a_job_asking_for_more_years_than_the_cv_has_scores_lower() -> None:
+    ask = "Python FastAPI Docker. 5+ years of experience required"
+    assert score_of("Developer", ask, years=1) < score_of("Developer", ask, years=5)
+    assert score_of("Developer", ask, years=1) < score_of("Developer", ask, years=3)
+
+
+def test_a_job_asking_for_fewer_years_scores_a_little_lower() -> None:
+    ask = "Python FastAPI Docker. 2 years experience"
+    assert score_of("Developer", ask, years=15) < score_of("Developer", ask, years=2)
+
+
+def test_title_seniority_implies_years_when_the_ad_states_none() -> None:
+    assert score_of("Senior Python Developer", years=1) < score_of("Python Developer", years=1)
+    assert score_of("Senior Python Developer", years=5) == score_of("Python Developer", years=5)
+
+
+def test_unknown_years_change_nothing() -> None:
+    ask = "Python FastAPI Docker. 8 years experience"
+    assert score_of("Senior Developer", ask) == score_of("Developer", "Python FastAPI Docker")
+
+
+def test_required_years_reads_ranges_and_both_phrasings() -> None:
+    assert required_years("Dev", "3-5 years of experience in Python") == 3
+    assert required_years("Dev", "Experience: minimum 4 years") == 4
+    assert required_years("Dev", "We are 10 years old") is None
+    assert required_years("Lead Dev", "no numbers") == 8
+    assert required_years("Dev", "no numbers") is None
+
+
+def test_cv_years_is_the_largest_stated() -> None:
+    assert [cv_years(t) for t in ("3 months", "1 year of Python", "5+ years, 2 yrs Go")] == [
+        None,
+        1,
+        5,
+    ]
+
+
+def test_visa_sponsorship_boosts_and_flags_the_job() -> None:
+    plain = rank_jobs({"python"}, [job("Python Developer", "Python")])[0]
+    offer = rank_jobs({"python"}, [job("Python Developer", "Python. Visa sponsorship offered")])[0]
+    assert (plain.visa_sponsor, offer.visa_sponsor) == (False, True)
+    assert offer.score > plain.score
+
+
+def test_no_sponsorship_is_not_a_boost() -> None:
+    for text in ("No visa sponsorship", "We cannot sponsor visas", "Must have the right to work"):
+        assert not rank_jobs({"python"}, [job("Python Developer", f"Python. {text}")])[
+            0
+        ].visa_sponsor
+
+
+def test_sponsorship_does_not_lift_a_job_with_no_skill_in_common() -> None:
+    match = rank_jobs({"python"}, [job("Nurse", "patient care. visa sponsorship")])[0]
+    assert (match.score, match.visa_sponsor) == (0, True)
+
+
+def test_an_architect_title_asks_for_more_years_than_the_ad_states() -> None:
+    assert required_years("Solution Architect", "Python. 3 years experience") == 8
+    assert required_years("Developer", "Python. 3 years experience") == 3
+
+
+def test_fresher_ads_ask_for_no_experience() -> None:
+    for text in ("Freshers welcome", "No experience required", "Entry level role"):
+        assert required_years("Developer", text) == 0
+
+
+def test_an_experienced_cv_ranks_a_fresher_job_well_below_a_matching_one() -> None:
+    fresher = score_of("Python Developer", "Python FastAPI Docker. Freshers welcome", years=8)
+    matching = score_of("Python Developer", "Python FastAPI Docker. 6+ years experience", years=8)
+    assert fresher < matching * 0.6
+
+
+def test_analyze_job_reads_skills_years_and_visa_once() -> None:
+    result = analyze_job(
+        "Senior Python Developer", "FastAPI. 6+ years experience. Visa sponsorship"
+    )
+    assert result == {
+        "skills": ["fastapi", "python"],
+        "required_years": 6,
+        "visa_sponsor": True,
+    }
+
+
+def test_limit_and_visa_only_keep_the_best_matching_jobs() -> None:
+    jobs = [
+        job("Python Developer", "Python FastAPI"),
+        job("Python Engineer", "Python. Visa sponsorship"),
+        job("Python Analyst", "Python. Relocation support"),
+    ]
+    cv = {"python", "fastapi"}
+
+    assert len(rank_jobs(cv, jobs, None, limit=2)) == 2
+    sponsored = rank_jobs(cv, jobs, None, visa_only=True)
+    assert [m.position for m in sponsored] == ["Python Engineer", "Python Analyst"]
+    assert [m.position for m in rank_jobs(cv, jobs, None, limit=1, visa_only=True)] == [
+        "Python Engineer"
+    ]
+
+
+async def test_matches_api_accepts_limit_and_visa_only(match_client: AsyncClient) -> None:
+    response = await match_client.post(
+        "/api/matches", json={"skills": ["python", "fastapi"], "limit": 2}
+    )
+    none = await match_client.post(
+        "/api/matches", json={"skills": ["python", "fastapi"], "visa_only": True}
+    )
+
+    assert len(response.json()) == 2
+    assert none.json() == []  # no fixture job offers sponsorship
+
+
+def test_a_match_lists_the_cv_skills_the_job_asks_for() -> None:
+    match = rank_jobs({"python", "docker", "react"}, [job("Dev", "Python FastAPI Docker")])[0]
+
+    assert match.matched_skills == ["docker", "python"]
+    assert match.missing_skills == ["fastapi"]

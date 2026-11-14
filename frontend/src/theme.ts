@@ -52,6 +52,12 @@ const theme = createTheme({
   shape: { borderRadius: 10 },
   typography: {
     fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    // One scale for every page: h4 is a page title, h6 a section title, subtitle1 a card title.
+    h4: { fontSize: 26, fontWeight: 700, lineHeight: 1.25, letterSpacing: "-0.01em" },
+    h5: { fontSize: 20, fontWeight: 700, lineHeight: 1.3 },
+    h6: { fontSize: 17, fontWeight: 700, lineHeight: 1.35 },
+    subtitle1: { fontSize: 16, fontWeight: 650, lineHeight: 1.4 },
+    overline: { fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", lineHeight: 1.5 },
   },
   components: {
     MuiCssBaseline: {

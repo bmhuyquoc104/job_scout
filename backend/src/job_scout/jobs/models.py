@@ -63,6 +63,16 @@ class Job(Base):
         String(16), nullable=False, default="unspecified", server_default="unspecified"
     )
     position: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    # The ad offers visa sponsorship or similar (see offers_sponsorship), read from title and text.
+    visa_sponsor: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    # Read from the title and description once, when promoted (see analyze_job), so ranking a CV
+    # never scans ad text: IT skill keys, and the years of experience the ad asks for.
+    skills: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, default=list, server_default="[]"
+    )
+    required_years: Mapped[int | None] = mapped_column(Integer)
     job_description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     url: Mapped[str] = mapped_column(Text, nullable=False)
     nzbn: Mapped[str] = mapped_column(String(32), nullable=False, default="")

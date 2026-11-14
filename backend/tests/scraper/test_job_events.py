@@ -171,3 +171,22 @@ async def test_promotion_stores_the_seniority_read_from_the_title(
     async with factory() as session:
         promoted = await session.scalar(select(Job).where(Job.external_id == "ev-plain"))
     assert promoted is not None and promoted.seniority == "lead"
+
+
+async def test_promotion_flags_jobs_that_offer_visa_sponsorship(
+    scrape_db: tuple[async_sessionmaker[AsyncSession], UUID],
+) -> None:
+    factory, _ = scrape_db
+    await promote(scrape_db, "ev-visa", job_description="We offer visa sponsorship")
+    await promote(scrape_db, "ev-novisa", job_description="No visa sponsorship available")
+
+    async with factory() as session:
+        yes = await session.scalar(select(Job).where(Job.external_id == "ev-visa"))
+        no = await session.scalar(select(Job).where(Job.external_id == "ev-novisa"))
+    assert yes is not None and no is not None
+    assert (yes.visa_sponsor, no.visa_sponsor) == (True, False)
+
+    await promote(scrape_db, "ev-novisa", job_description="Relocation support and AEWV")
+    async with factory() as session:
+        changed = await session.scalar(select(Job).where(Job.external_id == "ev-novisa"))
+    assert changed is not None and changed.visa_sponsor is True

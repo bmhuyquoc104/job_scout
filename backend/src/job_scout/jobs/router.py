@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from job_scout.database import get_session
 from job_scout.jobs import compare, locations, service, trends
 from job_scout.jobs.schemas import (
+    CategoryVisaStats,
+    CountryVisaStats,
     JobComparison,
     JobDetail,
     JobFacets,
@@ -54,6 +56,11 @@ async def get_category_sources(category_id: UUID, session: SessionDep) -> Source
     return await service.get_source_breakdown(session, category_id)
 
 
+@router.get("/categories/{category_id}/stats/visa-sponsorship", response_model=CategoryVisaStats)
+async def get_category_visa_stats(category_id: UUID, session: SessionDep) -> CategoryVisaStats:
+    return await service.get_visa_stats(session, category_id)
+
+
 @router.get("/sources", response_model=list[SourceOption])
 async def get_sources() -> list[SourceOption]:
     return [SourceOption(source=source, label=label) for source, label in JOB_SOURCES.items()]
@@ -62,6 +69,11 @@ async def get_sources() -> list[SourceOption]:
 @router.get("/jobs/{job_id}", response_model=JobDetail)
 async def get_job(job_id: UUID, session: SessionDep) -> JobDetail:
     return await service.get_job(session, job_id)
+
+
+@router.get("/stats/visa-sponsorship", response_model=list[CountryVisaStats])
+async def get_visa_sponsorship(session: SessionDep) -> list[CountryVisaStats]:
+    return await compare.visa_by_country(session)
 
 
 @router.get("/compare/jobs", response_model=JobComparison)
