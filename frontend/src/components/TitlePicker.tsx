@@ -22,7 +22,7 @@ export default function TitlePicker({ title, onChange }: TitlePickerProps) {
         // Typing or picking both set the title; clearing the box clears the result.
         onInputChange={(_, text) => onChange(text)}
         sx={{ maxWidth: 420, mb: 1.25 }}
-        renderInput={(params) => <TextField {...params} label="Job title" autoFocus />}
+        renderInput={(params) => <TextField {...params} label="Job title (optional)" />}
       />
       <Stack direction="row" gap={0.75} flexWrap="wrap" alignItems="center" sx={{ mb: 1 }}>
         <Typography variant="caption" color="text.secondary">Try:</Typography>

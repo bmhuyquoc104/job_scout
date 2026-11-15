@@ -8,7 +8,7 @@ import { useCountry } from "../country/CountryContext";
 const TOOLS = [
   { to: "/recommended-jobs", title: "Recommended jobs", text: "Open jobs ranked against your CV, in every country." },
   { to: "/recommended-jobs?visa=1", title: "Jobs with visa sponsorship", text: "Your best matches among ads that offer sponsorship." },
-  { to: "/analytics", title: "Compare a job across countries", text: "Open jobs, pay and sources for one job title." },
+  { to: "/analytics", title: "Compare countries", text: "Size, visa sponsorship, seniority, work arrangement and pay, for all jobs or one title." },
   { to: "/compare-routes", title: "Compare immigration routes", text: "Each country's priority list and routes for a job." },
 ];
 

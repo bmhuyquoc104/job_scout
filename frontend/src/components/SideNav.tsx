@@ -73,7 +73,7 @@ export default function SideNav() {
           needsCategory: true,
         },
         { label: "Diagrams", icon: ICONS.chart, to: `/categories/${categoryId}/diagrams`, selected: pathname.endsWith("/diagrams"), needsCategory: true },
-        { label: "Compare a job", icon: ICONS.trend, to: "/analytics", selected: pathname === "/analytics" },
+        { label: "Compare countries", icon: ICONS.trend, to: "/analytics", selected: pathname === "/analytics" },
       ],
     },
     {

@@ -180,6 +180,9 @@ class CountryJobStats(BaseModel):
     median_salary_min: int | None
     median_salary_max: int | None
     by_source: dict[str, int]
+    by_seniority: dict[str, int]  # open jobs per level read from the title
+    by_arrangement: dict[str, int]  # arrangement mentions (a job can list several) and "Not listed"
+    median_required_years: float | None  # middle of the years of experience ads ask for
 
 
 class JobComparison(BaseModel):

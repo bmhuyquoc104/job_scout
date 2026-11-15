@@ -77,7 +77,7 @@ async def test_job_detail_returns_all_csv_fields(
         "listed_at": "2026-10-02T00:00:00Z",
         "is_active": True,
         "visa_sponsor": True,
-        "required_years": None,
+        "required_years": 0,
         "closed_at": None,
     }
 

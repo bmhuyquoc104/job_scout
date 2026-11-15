@@ -1,6 +1,6 @@
 """One job title compared across the countries: how many open jobs, what they pay, where from."""
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from job_scout.categories.models import Category
@@ -50,6 +50,58 @@ async def compare_job(session: AsyncSession, title: str) -> JobComparison:
         country: (round(low), round(high))
         for country, low, high in (await session.execute(salaries)).all()
     }
+    by_seniority: dict[str, dict[str, int]] = {}
+    for country, level, count in (
+        await session.execute(
+            select(Category.country, Job.seniority, func.count())
+            .join(Category, Category.id == Job.category_id)
+            .where(Job.is_active.is_(True), *matches)
+            .group_by(Category.country, Job.seniority)
+        )
+    ).all():
+        by_seniority.setdefault(country, {})[level] = count
+    # A job can list several arrangements, so these count mentions; jobs with none are "Not listed".
+    arrangements = (
+        func.jsonb_array_elements_text(Job.work_arrangements).table_valued("value").lateral()
+    )
+    by_arrangement: dict[str, dict[str, int]] = {}
+    for country, arrangement, count in (
+        await session.execute(
+            select(Category.country, arrangements.c.value, func.count())
+            .select_from(Job)
+            .join(Category, Category.id == Job.category_id)
+            .join(arrangements, true())
+            .where(Job.is_active.is_(True), *matches)
+            .group_by(Category.country, arrangements.c.value)
+        )
+    ).all():
+        by_arrangement.setdefault(country, {})[arrangement] = count
+    for country, count in (
+        await session.execute(
+            select(Category.country, func.count())
+            .select_from(Job)
+            .join(Category, Category.id == Job.category_id)
+            .where(
+                Job.is_active.is_(True),
+                func.jsonb_array_length(Job.work_arrangements) == 0,
+                *matches,
+            )
+            .group_by(Category.country)
+        )
+    ).all():
+        by_arrangement.setdefault(country, {})["Not listed"] = count
+    experience = {
+        country: round(years, 1)
+        for country, years in (
+            await session.execute(
+                select(Category.country, func.percentile_cont(0.5).within_group(Job.required_years))
+                .select_from(Job)
+                .join(Category, Category.id == Job.category_id)
+                .where(Job.is_active.is_(True), Job.required_years.is_not(None), *matches)
+                .group_by(Category.country)
+            )
+        ).all()
+    }
     return JobComparison(
         title=title,
         countries=[
@@ -63,6 +115,9 @@ async def compare_job(session: AsyncSession, title: str) -> JobComparison:
                 median_salary_min=medians[code][0] if code in medians else None,
                 median_salary_max=medians[code][1] if code in medians else None,
                 by_source=dict(sorted(by_source.get(code, {}).items())),
+                by_seniority=by_seniority.get(code, {}),
+                by_arrangement=by_arrangement.get(code, {}),
+                median_required_years=experience.get(code),
             )
             for code, country in COUNTRIES.items()
         ],

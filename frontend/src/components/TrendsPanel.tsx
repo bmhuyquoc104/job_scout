@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Alert, Box, LinearProgress, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import { getCategoryVisaStats, getLocations, getSources, getTrends, SOURCE_LABELS, sourceLabel } from "../api/client";
+import { SENIORITY_LABELS } from "../api/labels";
 import { useApi } from "../api/useApi";
 import ChartCard from "./charts/ChartCard";
 import ChartShell from "./charts/ChartShell";
@@ -17,16 +18,6 @@ const RANGES = [
   { days: 30, label: "Last 30 days" },
   { days: 90, label: "Last 90 days" },
 ];
-
-const SENIORITY_LABELS: Record<string, string> = {
-  graduate: "Graduate / intern",
-  junior: "Junior",
-  mid: "Mid-level",
-  senior: "Senior",
-  lead: "Lead / principal",
-  management: "Management",
-  unspecified: "Not stated",
-};
 
 function StatTile({ label, value, note }: { label: string; value: string; note?: string }) {
   return (

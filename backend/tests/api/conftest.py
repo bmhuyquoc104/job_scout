@@ -52,6 +52,7 @@ async def api_context(
                 is_active=index < 2,
                 seniority=("senior", "junior", "senior")[index],
                 visa_sponsor=index == 1,
+                required_years=(5, 0, 8)[index],
             )
             for index, (
                 location,

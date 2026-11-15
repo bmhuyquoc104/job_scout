@@ -377,6 +377,16 @@ export interface components {
             by_source: {
                 [key: string]: number;
             };
+            /** By Seniority */
+            by_seniority: {
+                [key: string]: number;
+            };
+            /** By Arrangement */
+            by_arrangement: {
+                [key: string]: number;
+            };
+            /** Median Required Years */
+            median_required_years: number | null;
         };
         /** CountryRoutes */
         CountryRoutes: {
@@ -1091,8 +1101,8 @@ export interface operations {
     };
     compare_jobs_api_compare_jobs_get: {
         parameters: {
-            query: {
-                title: string;
+            query?: {
+                title?: string;
             };
             header?: never;
             path?: never;

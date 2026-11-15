@@ -78,6 +78,6 @@ async def get_visa_sponsorship(session: SessionDep) -> list[CountryVisaStats]:
 
 @router.get("/compare/jobs", response_model=JobComparison)
 async def compare_jobs(
-    session: SessionDep, title: Annotated[str, Query(min_length=1, max_length=200)]
+    session: SessionDep, title: Annotated[str, Query(max_length=200)] = ""
 ) -> JobComparison:
     return await compare.compare_job(session, title)

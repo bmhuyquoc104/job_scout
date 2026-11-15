@@ -52,7 +52,7 @@ export default function HorizontalBarChart({ title, bars, total, valueText }: Ho
                 className="bar-fill"
                 // 4px rounded data end, square where it starts.
                 sx={{
-                  flex: "none",
+                  flex: "0 1 auto", // gives way to the value text, which is never clipped
                   height: BAR_HEIGHT,
                   width: `${(bar.value / peak) * TRACK_SHARE}%`,
                   minWidth: 3,
@@ -60,7 +60,7 @@ export default function HorizontalBarChart({ title, bars, total, valueText }: Ho
                   borderRadius: "0 4px 4px 0",
                 }}
               />
-              <Typography variant="body2" noWrap sx={{ fontVariantNumeric: "tabular-nums" }}>
+              <Typography variant="body2" noWrap sx={{ fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
                 {valueText ? (
                   <b>{valueText(bar)}</b>
                 ) : (
