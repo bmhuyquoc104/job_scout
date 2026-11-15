@@ -25,13 +25,17 @@ _CV_YEARS = re.compile(_YEARS)
 # "5+ years of experience" and "experience: minimum 3 years"
 _REQUIRED = re.compile(_YEARS + r"[^.\n]{0,40}experience|experience[^.\n]{0,25}?" + _YEARS)
 _SPONSOR = re.compile(
-    r"visa sponsor|sponsorship|sponsor(?:s|ed|ing)? (?:a |your |the )?(?:work )?visa"
-    r"|work visa support|relocation (?:support|assistance|package)|aewv|accredited employer"
-    r"|blue card|skilled worker visa|subclass 482|subclass 186"
+    r"(?:visa|work permit|immigration) sponsor|sponsor\w*[^.\n]{0,30}?(?:visa|work permit)"
+    r"|(?:visa|work permit)[^.\n]{0,30}?sponsor"
+    r"|work visa support"
+    r"|eu blue card|blue card (?:visa|sponsor\w*)|skilled worker visa|subclass 482|subclass 186"
 )
+_QUESTION = re.compile(r"[^.\n?]*\?")
 _NO_SPONSOR = re.compile(
-    r"(?:no|not|without|unable to|cannot|can't|won't|do not|does not) (?:\w+ ){0,3}sponsor"
-    r"|sponsorship (?:is )?not (?:available|offered|provided)"
+    r"(?:no|not|without|unable to|cannot|can't|won't|do not|does not)\b[^.;\n]{0,60}?sponsor"
+    r"|sponsor[^.;\n]{0,60}?(?:not|n't|never) (?:\w+ )?"
+    r"(?:available|offered|provided|possible|supported)"
+    r"|sponsor[^.;\n]{0,40}?unavailable"
 )
 
 
@@ -67,7 +71,9 @@ def experience_factor(required: int | None, have: int | None) -> float:
 
 
 def offers_sponsorship(text: str) -> bool:
-    text = text.lower()
+    text = _QUESTION.sub(
+        " ", text.lower()
+    )  # "Are you looking for visa sponsorship?" asks, not offers
     return bool(_SPONSOR.search(text)) and not _NO_SPONSOR.search(text)
 
 

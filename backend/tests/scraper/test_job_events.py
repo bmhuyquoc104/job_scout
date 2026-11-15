@@ -186,7 +186,7 @@ async def test_promotion_flags_jobs_that_offer_visa_sponsorship(
     assert yes is not None and no is not None
     assert (yes.visa_sponsor, no.visa_sponsor) == (True, False)
 
-    await promote(scrape_db, "ev-novisa", job_description="Relocation support and AEWV")
+    await promote(scrape_db, "ev-novisa", job_description="We will sponsor your work visa")
     async with factory() as session:
         changed = await session.scalar(select(Job).where(Job.external_id == "ev-novisa"))
     assert changed is not None and changed.visa_sponsor is True

@@ -273,7 +273,7 @@ def test_limit_and_visa_only_keep_the_best_matching_jobs() -> None:
     jobs = [
         job("Python Developer", "Python FastAPI"),
         job("Python Engineer", "Python. Visa sponsorship"),
-        job("Python Analyst", "Python. Relocation support"),
+        job("Python Analyst", "Python. Work visa support"),
     ]
     cv = {"python", "fastapi"}
 
@@ -302,3 +302,51 @@ def test_a_match_lists_the_cv_skills_the_job_asks_for() -> None:
 
     assert match.matched_skills == ["docker", "python"]
     assert match.missing_skills == ["fastapi"]
+
+
+def test_only_visa_sponsorship_counts_not_conference_sponsorship() -> None:
+    assert not analyze_job("Marketing", "Manage conference sponsorship and event sponsors")[
+        "visa_sponsor"
+    ]
+    assert analyze_job("Dev", "We offer visa sponsorship")["visa_sponsor"]
+    assert analyze_job("Dev", "We will sponsor your work visa")["visa_sponsor"]
+
+
+def test_negated_visa_sponsorship_is_not_an_offer() -> None:
+    ad = (
+        "Must be legally authorized to work in Canada. We are currently unable to offer "
+        "employment-based visa or work permit sponsorship for this position."
+    )
+    assert not analyze_job("Engineer", ad)["visa_sponsor"]
+
+
+def test_relocation_support_is_not_visa_sponsorship() -> None:
+    assert not analyze_job("Dev", "Open to anyone in Canada. Relocation support is not provided.")[
+        "visa_sponsor"
+    ]
+
+
+def test_negation_after_the_sponsorship_wording_is_not_an_offer() -> None:
+    ad = "Employer-sponsored visa arrangements are not available for this position."
+    assert not analyze_job("Support Engineer", ad)["visa_sponsor"]
+    assert analyze_job("Dev", "Visa sponsorship is available. Relocation is not offered.")[
+        "visa_sponsor"
+    ]
+
+
+def test_a_screening_question_about_sponsorship_is_not_an_offer() -> None:
+    ad = "Questions:\n- Are you in Australia?\n- Are you looking for visa sponsorship?"
+    assert not analyze_job("Network Analyst", ad)["visa_sponsor"]
+
+
+def test_being_an_accredited_employer_is_not_an_offer_to_sponsor() -> None:
+    assert not analyze_job("Designer", "We are also an accredited employer with INZ")[
+        "visa_sponsor"
+    ]
+
+
+def test_queensland_blue_card_is_not_the_eu_blue_card_visa() -> None:
+    assert not analyze_job("IT Support", "A current Paid Blue Card (Working with Children Check)")[
+        "visa_sponsor"
+    ]
+    assert analyze_job("Entwickler", "We support your EU Blue Card application")["visa_sponsor"]
