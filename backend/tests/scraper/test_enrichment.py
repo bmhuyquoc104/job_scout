@@ -520,3 +520,56 @@ async def test_listing_in_a_country_without_an_employer_check_is_promoted_withou
     assert job is not None and job.category_id == au_id
     assert job.url == "https://www.seek.com.au/job/au-1"
     assert job.job_description == "Full Australian ad" and countries == ["AU"]
+
+
+async def test_a_dutch_listing_from_a_recognised_sponsor_gets_a_note_but_no_visa_flag(
+    scrape_db: tuple[async_sessionmaker[AsyncSession], UUID],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    factory, _ = scrape_db
+    async with factory() as session:
+        nl = await session.scalar(select(Category).where(Category.slug == "ict-nl"))
+        assert nl is not None
+        nl.enabled = True
+        session.add(
+            JobDraft(
+                category_id=nl.id,
+                external_id="nl-1",
+                source="arbeitnow",
+                raw_payload={
+                    "id": "nl-1",
+                    "slug": "nl-1",
+                    "company_name": "Bunq",
+                    "title": "Backend Developer",
+                    "description": "<p>Build the bank.</p>",
+                    "location": "Amsterdam",
+                    "url": "https://www.arbeitnow.com/jobs/nl-1",
+                },
+                status="pending",
+            )
+        )
+        await session.commit()
+        nl_id = nl.id
+
+    async def no_sleep(_: float) -> None:
+        return None
+
+    async def register() -> set[str]:
+        return {"bunq"}
+
+    monkeypatch.setattr(asyncio, "sleep", no_sleep)
+    monkeypatch.setattr(enrichment.ind_register, "fetch_register", register)
+    try:
+        await enrichment.enrich(factory, nl_id, "arbeitnow")
+    finally:
+        async with factory() as session, session.begin():
+            await session.execute(
+                update(Category).where(Category.id == nl_id).values(enabled=False)
+            )
+
+    async with factory() as session:
+        job = await session.scalar(select(Job).where(Job.external_id == "nl-1"))
+    assert job is not None
+    assert job.job_description.startswith("Build the bank.")
+    assert "IND-recognised sponsor" in job.job_description
+    assert job.visa_sponsor is False  # a register entry says "can hire", not "this ad offers"

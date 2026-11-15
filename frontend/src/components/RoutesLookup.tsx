@@ -10,8 +10,8 @@ export default function RoutesLookup() {
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 760 }}>
-        Pick a role from the list, or type any job title, to compare New Zealand, Australia, Canada, Germany and Ireland: whether the role is on each
-        country&apos;s priority list, the routes that apply to any job, and the salary thresholds in Germany and Ireland.
+        Pick a role from the list, or type any job title, to compare New Zealand, Australia, Canada, Germany, Ireland and the Netherlands: whether the role is on each
+        country&apos;s priority list, the routes that apply to any job, and the salary thresholds in Germany, Ireland and the Netherlands.
       </Typography>
       <TitlePicker title={title} onChange={setTitle} />
       {query ? (

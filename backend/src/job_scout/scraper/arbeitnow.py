@@ -1,4 +1,4 @@
-"""Arbeitnow's free public job API (Germany), filtered to IT jobs.
+"""Arbeitnow's free public job API (Germany and the Netherlands), filtered to IT jobs.
 
 The API returns 300 jobs a page across every field, so IT jobs are picked by tag or title. Its terms
 ask clients not to abuse it and to link back: each job links to its Arbeitnow page.
@@ -59,12 +59,29 @@ def in_germany(job: dict[str, Any]) -> bool:
     return not FOREIGN.search(location) or bool(GERMAN.search(location))
 
 
-def it_jobs(page: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """The page's IT jobs in Germany, each given our `id` (the job's slug)."""
+# shortcut: Dutch places seen on the board so far; add a name here if a Dutch job is missed.
+DUTCH = re.compile(
+    r"\b(netherlands|nederland|amsterdam|rotterdam|utrecht|eindhoven|den haag|the hague|delft|"
+    r"leiden|groningen|tilburg|breda|almere|nijmegen|arnhem|haarlem|maastricht|zwolle|gouda|"
+    r"assen|den bosch|amersfoort|apeldoorn|enschede|hilversum|delft|schiphol|veenendaal)\b",
+    re.IGNORECASE,
+)
+
+
+def in_netherlands(job: dict[str, Any]) -> bool:
+    return bool(DUTCH.search(str(job.get("location") or "")))
+
+
+IN_COUNTRY = {"DE": in_germany, "NL": in_netherlands}
+
+
+def it_jobs(page: list[dict[str, Any]], country: str = "DE") -> list[dict[str, Any]]:
+    """The page's IT jobs in the country, each given our `id` (the job's slug)."""
+    in_country = IN_COUNTRY[country]
     return [
         {**job, "id": job["slug"]}
         for job in page
-        if in_germany(job)
+        if in_country(job)
         and (
             IT_TITLE.search(str(job.get("title") or ""))
             or any(str(tag).lower() in IT_TAGS for tag in job.get("tags") or [])
@@ -73,8 +90,10 @@ def it_jobs(page: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def client(country: str = "DE") -> AsyncSession:
-    if country != "DE":
-        raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "Arbeitnow only covers Germany")
+    if country not in IN_COUNTRY:
+        raise AppError(
+            ErrorCode.SCRAPE_SOURCE_ERROR, "Arbeitnow only covers Germany and the Netherlands"
+        )
     return chrome_http.client()
 
 
@@ -86,7 +105,7 @@ async def pages(http: AsyncSession, country: str = "DE") -> AsyncIterator[list[d
             raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "Unreadable Arbeitnow response")
         if not data:
             return
-        yield it_jobs(data)
+        yield it_jobs(data, country)
         if not (body.get("links") or {}).get("next"):
             return
     raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, f"Exceeded {MAX_PAGES} Arbeitnow pages")

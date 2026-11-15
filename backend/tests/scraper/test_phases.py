@@ -153,3 +153,23 @@ async def test_ireland_is_searched_on_indeed_and_glassdoor_but_not_seek(
             await session.execute(
                 update(Category).where(Category.slug == "ict-ie").values(enabled=False)
             )
+
+
+async def test_the_netherlands_is_searched_on_all_four_of_its_boards(
+    test_database: async_sessionmaker[AsyncSession],
+) -> None:
+    async with test_database() as session, session.begin():
+        await session.execute(
+            update(Category).where(Category.slug == "ict-nl").values(enabled=True)
+        )
+    try:
+        assert await phases.enabled_category_slugs(source="indeed") == ["ict", "ict-nl"]
+        assert await phases.enabled_category_slugs(source="glassdoor") == ["ict", "ict-nl"]
+        assert await phases.enabled_category_slugs(source="arbeitnow") == ["ict-nl"]
+        assert await phases.enabled_category_slugs(source="iamexpat") == ["ict-nl"]
+        assert await phases.enabled_category_slugs(source="seek") == ["ict"]
+    finally:
+        async with test_database() as session, session.begin():
+            await session.execute(
+                update(Category).where(Category.slug == "ict-nl").values(enabled=False)
+            )

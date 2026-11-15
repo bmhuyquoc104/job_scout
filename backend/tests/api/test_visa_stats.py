@@ -25,7 +25,7 @@ async def test_visa_sponsorship_stats_cover_every_country(
 
     assert response.status_code == 200
     stats = {item["country"]: item for item in response.json()}
-    assert set(stats) == {"NZ", "AU", "CA", "DE", "IE"}
+    assert set(stats) == {"NZ", "AU", "CA", "DE", "IE", "NL"}
     assert (stats["NZ"]["open_jobs"], stats["NZ"]["visa_sponsor"]) == (2, 1)
     assert stats["NZ"]["country_name"] == "New Zealand"
     assert (stats["DE"]["open_jobs"], stats["DE"]["visa_sponsor"]) == (0, 0)

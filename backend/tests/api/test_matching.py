@@ -372,3 +372,25 @@ def test_irish_ads_that_only_mention_a_permit_are_not_offers() -> None:
     ]
     for ad in not_offers:
         assert not analyze_job("Software Engineer", ad)["visa_sponsor"], ad
+
+
+def test_dutch_sponsorship_wording_counts_as_visa_sponsorship() -> None:
+    offers = [
+        "Wij sponsoren je visum en helpen met verhuizen.",
+        "Visumsponsoring is mogelijk voor de juiste kandidaat.",
+        "Wij ondersteunen kennismigranten met de aanvraag.",
+        "We can sponsor your highly skilled migrant visa.",
+    ]
+    for ad in offers:
+        assert analyze_job("Software Engineer", ad)["visa_sponsor"], ad
+
+
+def test_dutch_ads_that_only_mention_a_permit_or_refuse_are_not_offers() -> None:
+    not_offers = [
+        "Helaas kunnen wij geen visum sponsoren.",
+        "Je hebt een geldige werkvergunning nodig.",
+        "Geen kennismigranten, je woont al in Nederland.",
+        "Heb je een visum nodig?",
+    ]
+    for ad in not_offers:
+        assert not analyze_job("Software Engineer", ad)["visa_sponsor"], ad

@@ -29,6 +29,8 @@ _SPONSOR = re.compile(
     r"|sponsor\w*[^.\n]{0,30}?(?:visa|(?:work|employment) permit)"
     r"|(?:visa|(?:work|employment) permit)[^.\n]{0,30}?sponsor"
     r"|work (?:visa|permit) support|employment permit support"
+    r"|visum ?sponsor\w*|sponsor\w*[^.\n]{0,30}?(?:visum|werkvergunning|verblijfsvergunning)"
+    r"|(?:visum|werkvergunning|verblijfsvergunning)[^.\n]{0,30}?sponsor\w*|kennismigrant\w*"
     r"|eu blue card|blue card (?:visa|sponsor\w*)|skilled worker visa|subclass 482|subclass 186"
 )
 _QUESTION = re.compile(r"[^.\n?]*\?")
@@ -37,6 +39,7 @@ _NO_SPONSOR = re.compile(
     r"|sponsor[^.;\n]{0,60}?(?:not|n't|never) (?:\w+ )?"
     r"(?:available|offered|provided|possible|supported)"
     r"|sponsor[^.;\n]{0,40}?unavailable"
+    r"|(?:geen|niet|zonder|helaas)\b[^.;\n]{0,60}?(?:sponsor|visum|kennismigrant|werkvergunning)"
 )
 
 

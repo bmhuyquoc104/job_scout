@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false # one failing source must not cancel the others
       matrix:
-        source: [seek, employmenthero, indeed, jobbank, arbeitnow]
+        source: [seek, employmenthero, indeed, jobbank, arbeitnow, iamexpat]
     defaults:
       run:
         working-directory: backend

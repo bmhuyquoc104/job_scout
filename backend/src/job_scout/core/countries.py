@@ -117,4 +117,26 @@ COUNTRIES: dict[str, Country] = {
         ),
         currency="€",
     ),
+    # No SEEK. Indeed and Glassdoor (English and Dutch ads), Arbeitnow and IamExpat (English).
+    # The rule is the highly skilled migrant salary amounts; the employer must be an IND-recognised
+    # sponsor, and its public register is checked as a note on each job (not a filter).
+    "NL": Country(
+        "Netherlands",
+        "",
+        "",
+        "en-NL",
+        "nl.indeed.com",
+        "www.glassdoor.nl",
+        "Netherlands",
+        "Immigration and Naturalisation Service (IND)",
+        "Highly skilled migrant salary amounts",
+        employer_check=False,
+        general_routes=(
+            "Highly skilled migrant permit: a job offer from an IND-recognised sponsor at the "
+            "minimum monthly salary (see the amounts below).",
+            "EU Blue Card: a job offer at the Blue Card salary; the employer need not be a "
+            "recognised sponsor.",
+        ),
+        currency="€",
+    ),
 }

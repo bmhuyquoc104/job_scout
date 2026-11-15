@@ -13,7 +13,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from job_scout.core.errors import AppError, ErrorCode
 from job_scout.jobs.models import Job, JobEvent, JobEventType
-from job_scout.scraper import arbeitnow, employmenthero, glassdoor, indeed, jobbank, seek_client
+from job_scout.scraper import (
+    arbeitnow,
+    employmenthero,
+    glassdoor,
+    iamexpat,
+    indeed,
+    jobbank,
+    seek_client,
+)
 from job_scout.scraper.models import JobDraft
 from job_scout.scraper.normalization import normalize_text
 from job_scout.scraper.persistence import draft_key, get_enabled_category, save_drafts
@@ -172,6 +180,7 @@ JOB_BOARDS = {
     "glassdoor": glassdoor,
     "jobbank": jobbank,
     "arbeitnow": arbeitnow,
+    "iamexpat": iamexpat,
 }
 JOB_BOARD_DELAY = 1.0  # seconds between pages
 

@@ -16,7 +16,9 @@ from job_scout.scraper import (
     chrome_http,
     employmenthero,
     glassdoor,
+    iamexpat,
     immigration_client,
+    ind_register,
     indeed,
     jobbank,
     seek_client,
@@ -40,6 +42,7 @@ SOURCES = {
     "glassdoor": (glassdoor.normalize_listing, glassdoor.build_description),
     "jobbank": (jobbank.normalize_listing, jobbank.build_description),
     "arbeitnow": (arbeitnow.normalize_listing, arbeitnow.build_description),
+    "iamexpat": (iamexpat.normalize_listing, iamexpat.build_description),
 }
 MAX_ENRICH_ATTEMPTS = 3  # failed drafts are retried this many times, then left for a payload change
 
@@ -63,6 +66,7 @@ async def process_listing(
     source: str = "seek",
     seek_http: HttpSession | None = None,
     country: str = "NZ",
+    recognised_sponsors: set[str] | None = None,
 ) -> str:
     """Enrich one draft. `immigration_page` is None for a country with no employer check."""
     normalize, describe = SOURCES[source]
@@ -103,6 +107,10 @@ async def process_listing(
                 )
             if not description:
                 raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "Listing has no description")
+            if recognised_sponsors and ind_register.is_recognised_sponsor(
+                listing.company_name, recognised_sponsors
+            ):
+                description = f"{description}\n\n{ind_register.NOTE}"
         enriched_data = {
             **listing.model_dump(mode="json"),
             "job_description": description,
@@ -186,6 +194,12 @@ async def enrich(
     logger.info("Starting enrichment for %s: %d pending draft(s)", category.slug, len(drafts))
     seek_http = chrome_http.client() if source == "seek" else None
     accreditation_cache: dict[str, dict[str, Any]] = {}
+    recognised_sponsors: set[str] | None = None
+    if category.country == "NL":
+        try:
+            recognised_sponsors = await ind_register.fetch_register()
+        except AppError as exc:  # a missing note never fails a job
+            logger.warning("IND register unavailable; Dutch jobs get no sponsor note: %s", exc)
 
     async def process_all(immigration_page: Page | None) -> None:
         for external_id, payload in drafts:
@@ -207,6 +221,7 @@ async def enrich(
                 source,
                 seek_http,
                 category.country,
+                recognised_sponsors,
             )
             if outcome == "eligible":
                 summary.eligible += 1

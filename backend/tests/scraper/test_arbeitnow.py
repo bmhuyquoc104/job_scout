@@ -70,3 +70,20 @@ def test_a_listing_is_normalised_from_the_api_job() -> None:
     assert listing.listed_at == datetime.fromtimestamp(1794623437, UTC)
     assert listing.url.endswith("/a")
     assert arbeitnow.build_description(payload) == "Build APIs"
+
+
+def test_the_netherlands_keeps_its_own_it_jobs_and_drops_the_rest() -> None:
+    def at(slug: str, location: str) -> dict:
+        return {**job(slug, "Backend Developer", []), "location": location}
+
+    page = [
+        at("nl1", "Amsterdam, Noord-Holland, Netherlands"),
+        at("nl2", "Utrecht"),
+        at("nl3", "Netherlands - Remote"),
+        at("de", "Berlin"),
+        at("uk", "London - Hybrid"),
+        at("be", "Brussels, Belgium"),
+    ]
+
+    assert [j["id"] for j in arbeitnow.it_jobs(page, "NL")] == ["nl1", "nl2", "nl3"]
+    assert [j["id"] for j in arbeitnow.it_jobs(page, "DE")] == ["de"]  # the default is unchanged

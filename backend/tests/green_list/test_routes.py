@@ -79,11 +79,12 @@ async def test_the_api_compares_every_country_for_a_job_title(
     ).json()
 
     by_country = {c["country"]: c for c in body["countries"]}
-    assert sorted(by_country) == ["AU", "CA", "DE", "IE", "NZ"]
+    assert sorted(by_country) == ["AU", "CA", "DE", "IE", "NL", "NZ"]
     assert by_country["NZ"]["roles"][0]["tier"] == 1
     assert by_country["AU"]["roles"][0]["lists"] == ["CSOL", "MLTSSL"]
     assert by_country["DE"]["roles"] == []  # no list in Germany
     assert by_country["IE"]["roles"] == []  # none loaded for Ireland here
+    assert by_country["NL"]["roles"] == []  # nor for the Netherlands
     assert all(c["general_routes"] for c in body["countries"])
     assert (await green_api.get("/api/green-list/routes")).status_code == 422
 

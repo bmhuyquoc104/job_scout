@@ -38,9 +38,14 @@ async def enabled_category_slugs(only: str | None = None, source: str = "seek") 
         query = query.where(
             Category.country == "CA", Category.seek_classification_id == BOARD_CLASSIFICATION
         )
-    elif source == "arbeitnow":  # Germany's free job API, filtered to IT jobs
+    elif source == "arbeitnow":  # a free job API for Europe, filtered to IT jobs per country
         query = query.where(
-            Category.country == "DE", Category.seek_classification_id == BOARD_CLASSIFICATION
+            Category.country.in_(["DE", "NL"]),
+            Category.seek_classification_id == BOARD_CLASSIFICATION,
+        )
+    elif source == "iamexpat":  # the English-language board for expats in the Netherlands
+        query = query.where(
+            Category.country == "NL", Category.seek_classification_id == BOARD_CLASSIFICATION
         )
     elif source == "seek":
         query = query.where(Category.country.in_([c for c, v in COUNTRIES.items() if v.seek_host]))
