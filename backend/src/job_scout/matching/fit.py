@@ -25,9 +25,10 @@ _CV_YEARS = re.compile(_YEARS)
 # "5+ years of experience" and "experience: minimum 3 years"
 _REQUIRED = re.compile(_YEARS + r"[^.\n]{0,40}experience|experience[^.\n]{0,25}?" + _YEARS)
 _SPONSOR = re.compile(
-    r"(?:visa|work permit|immigration) sponsor|sponsor\w*[^.\n]{0,30}?(?:visa|work permit)"
-    r"|(?:visa|work permit)[^.\n]{0,30}?sponsor"
-    r"|work visa support"
+    r"(?:visa|(?:work|employment) permit|immigration) sponsor"
+    r"|sponsor\w*[^.\n]{0,30}?(?:visa|(?:work|employment) permit)"
+    r"|(?:visa|(?:work|employment) permit)[^.\n]{0,30}?sponsor"
+    r"|work (?:visa|permit) support|employment permit support"
     r"|eu blue card|blue card (?:visa|sponsor\w*)|skilled worker visa|subclass 482|subclass 186"
 )
 _QUESTION = re.compile(r"[^.\n?]*\?")

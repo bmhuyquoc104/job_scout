@@ -38,6 +38,24 @@ def test_roles_apply_to_the_whole_query_in_either_direction() -> None:
     assert sorted(titles("nurse", *roles)) == ["Nurse Practitioner", "Registered Nurse"]
 
 
+def test_a_title_whose_words_all_appear_in_a_long_role_name_matches_it() -> None:
+    # Ireland's list names broad groups, not job titles.
+    roles = (
+        role("Programmers and software development professionals", "IE"),
+        role("Production Managers and Directors", "IE"),
+        # A whole sentence that only mentions software in passing.
+        role(
+            "International marketing experts with required domain knowledge specialising in "
+            "product strategy (pharmaceutical, medical devices, Software B2B, SaaS products)",
+            "IE",
+        ),
+    )
+
+    assert titles("Software Engineer", *roles) == [
+        "Programmers and software development professionals"
+    ]
+
+
 def test_salary_threshold_roles_apply_to_every_job() -> None:
     threshold = role("EU Blue Card: standard salary", "DE", industry="Salary threshold 2026")
 
@@ -61,10 +79,11 @@ async def test_the_api_compares_every_country_for_a_job_title(
     ).json()
 
     by_country = {c["country"]: c for c in body["countries"]}
-    assert sorted(by_country) == ["AU", "CA", "DE", "NZ"]
+    assert sorted(by_country) == ["AU", "CA", "DE", "IE", "NZ"]
     assert by_country["NZ"]["roles"][0]["tier"] == 1
     assert by_country["AU"]["roles"][0]["lists"] == ["CSOL", "MLTSSL"]
     assert by_country["DE"]["roles"] == []  # no list in Germany
+    assert by_country["IE"]["roles"] == []  # none loaded for Ireland here
     assert all(c["general_routes"] for c in body["countries"])
     assert (await green_api.get("/api/green-list/routes")).status_code == 422
 

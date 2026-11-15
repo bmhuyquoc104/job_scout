@@ -9,6 +9,7 @@ import re
 from job_scout.green_list.models import GreenListRole
 
 MAX_PER_COUNTRY = 8
+MAX_SUBSET_WORDS = 5  # a longer role name is a sentence, not a name a title can sit inside
 # Words too common to show that two titles are the same job.
 _GENERIC = {
     "senior", "junior", "lead", "principal", "staff", "head", "chief", "associate", "assistant",
@@ -27,7 +28,8 @@ def distinctive_words(text: str) -> set[str]:
 
 
 def matching_roles(title: str, roles: list[GreenListRole]) -> list[GreenListRole]:
-    """Roles sharing at least half their distinctive words with the title, best first.
+    """Roles sharing at least half their distinctive words with the title, or containing all of
+    the title's, best first.
 
     Salary-threshold roles (Germany) are rules for every job, so they always match.
     """
@@ -39,6 +41,8 @@ def matching_roles(title: str, roles: list[GreenListRole]) -> list[GreenListRole
             continue
         own = distinctive_words(role.title)
         score = len(own & wanted) / len(own) if own else 0
+        if wanted <= own and len(own) <= MAX_SUBSET_WORDS:  # the title's words are all in the name
+            score = max(score, 0.5)
         if score >= 0.5:
             scored.append((score, role))
     scored.sort(key=lambda pair: (-pair[0], pair[1].title))

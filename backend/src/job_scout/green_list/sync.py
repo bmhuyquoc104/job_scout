@@ -12,6 +12,7 @@ from job_scout.green_list.australia import fetch_occupations
 from job_scout.green_list.canada import fetch_occupations as fetch_canada
 from job_scout.green_list.client import fetch_green_list
 from job_scout.green_list.germany import fetch_thresholds
+from job_scout.green_list.ireland import fetch_occupations as fetch_ireland
 from job_scout.green_list.models import GreenListEvent, GreenListEventType, GreenListRole
 from job_scout.green_list.parsing import RoleRecord
 
@@ -124,6 +125,7 @@ FETCHERS: dict[str, Callable[[], Awaitable[list[RoleRecord]]]] = {
     "AU": fetch_occupations,
     "CA": fetch_canada,
     "DE": fetch_thresholds,
+    "IE": fetch_ireland,
 }
 
 

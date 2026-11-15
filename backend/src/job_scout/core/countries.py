@@ -97,4 +97,24 @@ COUNTRIES: dict[str, Country] = {
         ),
         currency="€",
     ),
+    # No SEEK: the boards are Indeed and Glassdoor. The rule is the Critical Skills Occupations
+    # List plus salary thresholds, and the employer applies (there is no sponsor register).
+    "IE": Country(
+        "Ireland",
+        "",
+        "",
+        "en-IE",
+        "ie.indeed.com",
+        "www.glassdoor.ie",
+        "Ireland",
+        "Department of Enterprise, Trade and Employment",
+        "Critical Skills Occupations List",
+        employer_check=False,
+        general_routes=(
+            "Critical Skills Employment Permit: a 2-year job offer in a role on the Critical "
+            "Skills Occupations List paying at least €40,904 (relevant degree needed), or in any "
+            "eligible occupation paying over €68,911. The employer applies for the permit.",
+        ),
+        currency="€",
+    ),
 }

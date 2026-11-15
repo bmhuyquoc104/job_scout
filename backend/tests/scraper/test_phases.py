@@ -135,3 +135,21 @@ async def test_employment_hero_also_covers_the_australian_ict_category(
             await session.execute(
                 update(Category).where(Category.slug == "ict-au").values(enabled=False)
             )
+
+
+async def test_ireland_is_searched_on_indeed_and_glassdoor_but_not_seek(
+    test_database: async_sessionmaker[AsyncSession],
+) -> None:
+    async with test_database() as session, session.begin():
+        await session.execute(
+            update(Category).where(Category.slug == "ict-ie").values(enabled=True)
+        )
+    try:
+        assert await phases.enabled_category_slugs(source="glassdoor") == ["ict", "ict-ie"]
+        assert await phases.enabled_category_slugs(source="indeed") == ["ict", "ict-ie"]
+        assert await phases.enabled_category_slugs(source="seek") == ["ict"]
+    finally:
+        async with test_database() as session, session.begin():
+            await session.execute(
+                update(Category).where(Category.slug == "ict-ie").values(enabled=False)
+            )

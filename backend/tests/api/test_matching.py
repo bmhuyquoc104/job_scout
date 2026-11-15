@@ -350,3 +350,25 @@ def test_queensland_blue_card_is_not_the_eu_blue_card_visa() -> None:
         "visa_sponsor"
     ]
     assert analyze_job("Entwickler", "We support your EU Blue Card application")["visa_sponsor"]
+
+
+def test_irish_employment_permit_wording_counts_as_visa_sponsorship() -> None:
+    offers = [
+        "We will sponsor your Critical Skills Employment Permit.",
+        "Employment permit sponsorship is available for the right candidate.",
+        "Work permit support and relocation assistance provided.",
+        "Employment permit support available.",
+    ]
+    for ad in offers:
+        assert analyze_job("Software Engineer", ad)["visa_sponsor"], ad
+
+
+def test_irish_ads_that_only_mention_a_permit_are_not_offers() -> None:
+    not_offers = [
+        "You must hold a valid employment permit or Stamp 4.",
+        "Unfortunately we cannot offer employment permit sponsorship.",
+        "Do you require employment permit sponsorship?",
+        "Candidates must be eligible to work in Ireland without a Critical Skills permit.",
+    ]
+    for ad in not_offers:
+        assert not analyze_job("Software Engineer", ad)["visa_sponsor"], ad
