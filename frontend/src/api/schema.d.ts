@@ -639,6 +639,8 @@ export interface components {
             location: string;
             /** Salary Label */
             salary_label: string;
+            /** Listed At */
+            listed_at: string | null;
             /** Score */
             score: number;
             /** Visa Sponsor */

@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -57,6 +58,7 @@ async def match_client(async_test_database_url: str) -> AsyncIterator[AsyncClien
                 **analyze_job(position, description),
                 url=f"https://www.seek.co.nz/job/{external_id}",
                 is_active=active,
+                listed_at=datetime(2026, 11, 1, tzinfo=UTC) if external_id == "a" else None,
             )
             for external_id, position, description, active in (
                 ("a", "Python Developer", "FastAPI PostgreSQL Docker", True),
@@ -116,6 +118,8 @@ async def test_every_open_job_is_ranked_with_skills_to_add_for_weak_matches(
         "Company b",
         "Company c",
     ]
+    assert matches["Company a"]["listed_at"].startswith("2026-11-01")
+    assert matches["Company b"]["listed_at"] is None
     assert len(matches) == 5  # all open jobs, including ones with nothing in common; not closed "z"
     assert (matches["Company a"]["source"], matches["Company b"]["source"]) == ("seek", "indeed")
     assert (matches["Company a"]["score"], matches["Company a"]["missing_skills"]) == (80, [])
@@ -178,6 +182,7 @@ def job(position: str, description: str = "Python FastAPI Docker"):
         source="seek",
         location="Auckland",
         salary_label="",
+        listed_at=None,
         **analyze_job(position, description),
     )
 

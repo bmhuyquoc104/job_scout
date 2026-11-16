@@ -1,6 +1,7 @@
-import { Box, Chip, Link, Paper, Stack, Typography } from "@mui/material";
+import { Box, Chip, Link, Paper, Stack, Tooltip, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import type { JobMatch } from "../api/client";
+import { formatRelativeDate, isRecent } from "../utils/date";
 
 export const STRONG = 65;
 const scoreColor = (score: number) => (score >= STRONG ? "success" : score >= 35 ? "warning" : "text");
@@ -38,9 +39,24 @@ export default function JobRow({ match, cvYears }: { match: JobMatch; cvYears?: 
     <Paper component="li" variant="outlined" sx={{ p: 2, display: "flex", gap: 2, alignItems: "flex-start" }}>
       <Score value={match.score} />
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Link component={RouterLink} to={`/jobs/${match.id}`} underline="hover" fontWeight={650} color="text.primary">
-          {match.position}
-        </Link>
+        <Stack direction="row" columnGap={1.5} justifyContent="space-between" alignItems="baseline" flexWrap="wrap">
+          <Link component={RouterLink} to={`/jobs/${match.id}`} underline="hover" fontWeight={650} color="text.primary">
+            {match.position}
+          </Link>
+          {match.listed_at && (
+            <Tooltip title={new Date(match.listed_at).toLocaleDateString("en-NZ", { dateStyle: "long" })}>
+              <Typography
+                component="time"
+                dateTime={match.listed_at}
+                variant="caption"
+                color={isRecent(match.listed_at) ? "success.main" : "text.secondary"}
+                sx={{ flex: "none", whiteSpace: "nowrap" }}
+              >
+                Posted {formatRelativeDate(match.listed_at)}
+              </Typography>
+            </Tooltip>
+          )}
+        </Stack>
         <Typography variant="body2" color="text.secondary">
           {[match.company_name, match.location, match.salary_label].filter(Boolean).join(" · ")}
         </Typography>

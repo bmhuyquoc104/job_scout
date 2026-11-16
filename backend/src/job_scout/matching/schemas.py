@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -13,6 +14,7 @@ class JobMatch(BaseModel):
     source: str
     location: str
     salary_label: str
+    listed_at: datetime | None
     # 0-100: how much of the job's skill list the CV covers (see rank_jobs).
     score: int
     # The ad mentions visa sponsorship or similar; such jobs get a score bonus.

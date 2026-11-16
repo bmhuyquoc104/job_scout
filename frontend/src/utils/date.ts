@@ -7,3 +7,5 @@ export function formatRelativeDate(value: string | null): string {
   const days = Math.round((listedAt - Date.now()) / DAY_MS);
   return new Intl.RelativeTimeFormat("en-NZ", { numeric: "auto" }).format(days, "day");
 }
+
+export const isRecent = (value: string, days = 3): boolean => Date.now() - Date.parse(value) < days * DAY_MS;
