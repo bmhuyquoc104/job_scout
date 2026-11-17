@@ -17,8 +17,13 @@ x-airflow-common: &airflow-common
     AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET:-local_airflow_jwt_secret}
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
     AIRFLOW__API__WORKERS: "1" # default is 4; keeps local memory use down
+    # Default is 32 tasks at once; catch-up runs of all the scrape DAGs together ran a 4 GB VM
+    # out of memory and killed the API server. Sized for the 8 GB Colima VM; Chromium tasks are heavy.
+    AIRFLOW__CORE__PARALLELISM: "3"
     INDEED_API_KEY: ${INDEED_API_KEY:-}
     GLASSDOOR_CSRF_TOKEN: ${GLASSDOOR_CSRF_TOKEN:-}
+    DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+    DISCORD_MENTION_USER_ID: ${DISCORD_MENTION_USER_ID:-}
     <<: *database-env
   volumes:
     - ./airflow/dags:/opt/airflow/dags:ro
@@ -38,6 +43,8 @@ x-backend-common: &backend-common
     <<: *database-env
     # Docker Desktop bind mounts on macOS often drop file events, so --reload never fires.
     WATCHFILES_FORCE_POLLING: "true"
+    DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+    DISCORD_MENTION_USER_ID: ${DISCORD_MENTION_USER_ID:-}
   volumes:
     - ./backend/src:/app/src
     - ./backend/migrations:/app/migrations

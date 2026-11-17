@@ -39,9 +39,13 @@ async def scrape_db(
 @pytest.fixture
 def fake_browser(monkeypatch: pytest.MonkeyPatch) -> None:
 
+    class Page:
+        async def close(self) -> None:
+            return None
+
     class Browser:
         async def new_page(self) -> object:
-            return object()
+            return Page()
 
         async def close(self) -> None:
             return None

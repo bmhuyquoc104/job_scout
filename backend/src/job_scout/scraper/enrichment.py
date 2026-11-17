@@ -1,10 +1,11 @@
 import asyncio
+import contextlib
 import logging
 from typing import Any
 from uuid import UUID
 
 from curl_cffi.requests import AsyncSession as HttpSession
-from playwright.async_api import Page, async_playwright
+from playwright.async_api import Browser, Page, async_playwright
 from pydantic import ValidationError
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -82,6 +83,7 @@ async def process_listing(
         return "failed"
 
     immigration_result: dict[str, Any] | None = None
+    crashed = False
     try:
         listing = normalize(payload, country) if source == "seek" else normalize(payload)
         if immigration_page is None:
@@ -122,9 +124,10 @@ async def process_listing(
     except ValidationError:
         logger.exception("Malformed SEEK listing %s", external_id)
         error = ErrorCode.SCRAPE_SOURCE_ERROR
-    except Exception:
+    except Exception as exc:
         logger.exception("Failed to enrich SEEK listing %s", external_id)
         error = ErrorCode.INTERNAL_ERROR
+        crashed = "page crashed" in f"{exc} {exc.__cause__}".lower()
     else:
         error = None
 
@@ -138,7 +141,7 @@ async def process_listing(
             error=error,
             source=source,
         )
-        return "failed"
+        return "page_crashed" if crashed else "failed"
 
     await save_outcome(
         session_factory,
@@ -201,7 +204,8 @@ async def enrich(
         except AppError as exc:  # a missing note never fails a job
             logger.warning("IND register unavailable; Dutch jobs get no sponsor note: %s", exc)
 
-    async def process_all(immigration_page: Page | None) -> None:
+    async def process_all(browser: Browser | None) -> None:
+        immigration_page = await browser.new_page() if browser else None
         for external_id, payload in drafts:
             summary.fetched += 1
             logger.info(
@@ -229,6 +233,12 @@ async def enrich(
                 summary.ineligible += 1
             else:
                 summary.failed += 1
+            if outcome == "page_crashed" and browser:
+                # A crashed Chromium page fails every later lookup; start a fresh one.
+                logger.warning("Browser page crashed; opening a new one")
+                with contextlib.suppress(Exception):  # the dead page may refuse to close
+                    await immigration_page.close()
+                immigration_page = await browser.new_page()
             logger.info(
                 "Finished listing %d/%d (%s): %s",
                 summary.fetched,
@@ -243,8 +253,7 @@ async def enrich(
             async with async_playwright() as playwright:
                 browser = await playwright.chromium.launch(headless=True)
                 try:
-                    # One page, kept on the Immigration NZ site between lookups.
-                    await process_all(await browser.new_page())
+                    await process_all(browser)
                 finally:
                     await browser.close()
         else:

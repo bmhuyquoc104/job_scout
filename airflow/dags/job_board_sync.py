@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import pendulum
 from airflow.sdk import Param, dag, task, task_group
+from daily_assets import finished
 
 # The backend has its own venv because its SQLAlchemy 2.1 conflicts with Airflow's pins.
 BACKEND_PYTHON = "/opt/job-scout/.venv/bin/python"
@@ -16,7 +17,7 @@ def job_board_dag(source: str, title: str, schedule: str):
     @dag(
         dag_id=f"job_scout_{source}_daily",
         description=f"{title}: read the IT search, reconcile, check employer eligibility.",
-        schedule=schedule,  # Asia/Ho_Chi_Minh, after the SEEK (06:00) and Employment Hero (07:00) runs
+        schedule=schedule,  # Asia/Ho_Chi_Minh
         start_date=pendulum.datetime(2026, 11, 7, tz="Asia/Ho_Chi_Minh"),
         catchup=False,
         max_active_runs=1,
@@ -68,8 +69,10 @@ def job_board_dag(source: str, title: str, schedule: str):
 
             configure_logging()
             summary = asyncio.run(enrich_phase(category, source))
-            if summary.failed:
-                raise RuntimeError(f"{summary.failed} listing(s) failed enrichment")
+            # Some bad listings are skipped (each is retried next run, up to 3 times); only a run
+            # where every listing failed means something systemic, so only that fails the task.
+            if summary.failed and summary.failed == summary.fetched:
+                raise RuntimeError(f"all {summary.failed} listing(s) failed enrichment")
 
         # A failed discovery stops only its own category's chain: a partial scan never reconciles.
         @task_group
@@ -77,13 +80,13 @@ def job_board_dag(source: str, title: str, schedule: str):
             scan_started_at = discover(category, source)
             reconcile(category, scan_started_at, source) >> enrich(category, source)
 
-        sync.expand(category=enabled_categories("{{ params.category }}", source))
+        sync.expand(category=enabled_categories("{{ params.category }}", source)) >> finished(f"job_scout_{source}_daily")
 
     return job_board_daily()
 
 
-indeed_daily = job_board_dag("indeed", "Indeed", "0 8 * * *")
-glassdoor_daily = job_board_dag("glassdoor", "Glassdoor", "0 9 * * *")
-jobbank_daily = job_board_dag("jobbank", "Job Bank (Canada)", "0 10 * * *")
-arbeitnow_daily = job_board_dag("arbeitnow", "Arbeitnow (Germany and the Netherlands)", "0 11 * * *")
-iamexpat_daily = job_board_dag("iamexpat", "IamExpat (Netherlands)", "0 12 * * *")
+indeed_daily = job_board_dag("indeed", "Indeed", "0 17 * * *")
+glassdoor_daily = job_board_dag("glassdoor", "Glassdoor", "0 17 * * *")
+jobbank_daily = job_board_dag("jobbank", "Job Bank (Canada)", "0 17 * * *")
+arbeitnow_daily = job_board_dag("arbeitnow", "Arbeitnow (Germany and the Netherlands)", "0 17 * * *")
+iamexpat_daily = job_board_dag("iamexpat", "IamExpat (Netherlands)", "0 17 * * *")

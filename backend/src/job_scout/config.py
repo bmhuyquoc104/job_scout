@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     indeed_api_key: str = ""
     glassdoor_csrf_token: str = ""
+    discord_webhook_url: str = ""
+    discord_mention_user_id: str = ""
 
 
 settings = Settings()

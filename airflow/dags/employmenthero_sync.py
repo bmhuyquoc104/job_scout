@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import pendulum
 from airflow.sdk import Param, dag, task, task_group
+from daily_assets import finished
 
 # The backend has its own venv because its SQLAlchemy 2.1 conflicts with Airflow's pins.
 BACKEND_PYTHON = "/opt/job-scout/.venv/bin/python"
@@ -13,7 +14,7 @@ ONE_AT_A_TIME = {**EXTERNAL, "max_active_tis_per_dagrun": 1}
 @dag(
     dag_id="job_scout_employmenthero_daily",
     description="Employment Hero: read each category's job pages, reconcile, check employer eligibility.",
-    schedule="0 7 * * *",  # after the SEEK run (06:00), Asia/Ho_Chi_Minh
+    schedule="0 17 * * *",  # all daily DAGs start together, Asia/Ho_Chi_Minh
     start_date=pendulum.datetime(2026, 11, 7, tz="Asia/Ho_Chi_Minh"),
     catchup=False,
     max_active_runs=1,
@@ -64,8 +65,10 @@ def job_scout_employmenthero_daily():
 
         configure_logging()
         summary = asyncio.run(enrich_phase(category, "employmenthero"))
-        if summary.failed:
-            raise RuntimeError(f"{summary.failed} listing(s) failed enrichment")
+        # Some bad listings are skipped (each is retried next run, up to 3 times); only a run
+        # where every listing failed means something systemic, so only that fails the task.
+        if summary.failed and summary.failed == summary.fetched:
+            raise RuntimeError(f"all {summary.failed} listing(s) failed enrichment")
 
     # A failed discovery stops only its own category's chain: a partial scan never reconciles.
     @task_group
@@ -73,7 +76,7 @@ def job_scout_employmenthero_daily():
         scan_started_at = discover(category)
         reconcile(category, scan_started_at) >> enrich(category)
 
-    sync.expand(category=enabled_categories("{{ params.category }}"))
+    sync.expand(category=enabled_categories("{{ params.category }}")) >> finished("job_scout_employmenthero_daily")
 
 
 job_scout_employmenthero_daily()

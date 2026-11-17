@@ -573,3 +573,34 @@ async def test_a_dutch_listing_from_a_recognised_sponsor_gets_a_note_but_no_visa
     assert job.job_description.startswith("Build the bank.")
     assert "IND-recognised sponsor" in job.job_description
     assert job.visa_sponsor is False  # a register entry says "can hire", not "this ad offers"
+
+
+async def test_a_crashed_browser_page_is_replaced_so_later_listings_still_run(
+    scrape_db: tuple[async_sessionmaker[AsyncSession], UUID],
+    fake_browser: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    factory, category_id = scrape_db
+    pages: list[object] = []
+
+    async def fetch_page(_: object, __: Category, page: int) -> dict[str, Any]:
+        listings = [source_listing("crashes"), source_listing("fine")]
+        return {"data": listings, "totalCount": 2} if page == 1 else {"data": [], "totalCount": 0}
+
+    async def accreditation(page: object, _: str) -> dict[str, str]:
+        pages.append(page)
+        if len(pages) == 1:
+            raise RuntimeError("Page.wait_for_timeout: Page crashed")
+        return {"Title": "No Results"}
+
+    async def no_sleep(_: float) -> None:
+        return None
+
+    monkeypatch.setattr(seek_client, "fetch_search_page", fetch_page)
+    monkeypatch.setattr(immigration_client, "check_accreditation", accreditation)
+    monkeypatch.setattr(asyncio, "sleep", no_sleep)
+
+    summary = await runner.run(factory, category_id)
+
+    assert (summary.failed, summary.ineligible) == (1, 1)
+    assert pages[0] is not pages[1]
