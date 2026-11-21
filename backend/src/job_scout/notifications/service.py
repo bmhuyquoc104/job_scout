@@ -23,6 +23,7 @@ class RunResult:
     state: str
     new: int = 0
     closed: int = 0
+    visa: int = 0  # of the new jobs, those offering visa sponsorship
 
 
 @dataclass(frozen=True)
@@ -66,13 +67,17 @@ def render_summary(
         content = f"<@{mention_user_id}>" if mention_user_id else ""
     else:
         table = "\n".join(
-            f"{_source(r.dag):<16} {'+' + str(r.new):<6} −{r.closed}"
+            f"{_source(r.dag):<16} {'+' + str(r.new):<6} {'🛂' + str(r.visa):<5} −{r.closed}"
             for r in sorted(results, key=lambda r: r.dag)
         )
         total_new, total_closed = sum(r.new for r in results), sum(r.closed for r in results)
+        total_visa = sum(r.visa for r in results)
         embed = {
             "title": f"✅ Scrape finished: all {len(results)} DAGs succeeded",
-            "description": f"**+{total_new} new · −{total_closed} closed**\n```\n{table}\n```",
+            "description": (
+                f"**+{total_new} new · {total_visa} with visa · −{total_closed} closed**"
+                f"\n```\n{table}\n```"
+            ),
             "color": GREEN,
         }
         content = ""
@@ -116,12 +121,17 @@ def render_policy_summary(results: list[PolicyResult], finished: int) -> dict[st
 
 async def event_counts(
     since: datetime, session_factory: async_sessionmaker[AsyncSession] | None = None
-) -> dict[str, tuple[int, int]]:
-    """Per source: (new, closed) job events since `since`."""
+) -> dict[str, tuple[int, int, int]]:
+    """Per source: (new, closed, new with visa sponsorship) job events since `since`."""
     from job_scout.database import session_factory as default_session_factory
 
     statement = (
-        select(Job.source, JobEvent.event_type, func.count())
+        select(
+            Job.source,
+            JobEvent.event_type,
+            func.count(),
+            func.count().filter(Job.visa_sponsor.is_(True)),
+        )
         .join(Job, Job.id == JobEvent.job_id)
         .where(
             JobEvent.occurred_at >= since,
@@ -132,9 +142,13 @@ async def event_counts(
     async with (session_factory or default_session_factory)() as session:
         rows = (await session.execute(statement)).all()
     counts: dict[str, list[int]] = {}
-    for source, event_type, count in rows:
-        counts.setdefault(source, [0, 0])[event_type == JobEventType.CLOSED] = count
-    return {source: (new, closed) for source, (new, closed) in counts.items()}
+    for source, event_type, count, visa in rows:
+        entry = counts.setdefault(source, [0, 0, 0])
+        if event_type == JobEventType.CLOSED:
+            entry[1] = count
+        else:
+            entry[0], entry[2] = count, visa
+    return {source: (new, closed, visa) for source, (new, closed, visa) in counts.items()}
 
 
 async def run_results(
@@ -142,7 +156,7 @@ async def run_results(
 ) -> list[RunResult]:
     """A success result for each DAG, with the jobs it added and closed since the run began."""
     counts = await event_counts(datetime.fromtimestamp(started, UTC), session_factory)
-    return [RunResult(dag, "success", *counts.get(_source(dag), (0, 0))) for dag in dags]
+    return [RunResult(dag, "success", *counts.get(_source(dag), (0, 0, 0))) for dag in dags]
 
 
 async def send(payload: dict[str, Any], webhook_url: str, client: httpx.AsyncClient) -> bool:

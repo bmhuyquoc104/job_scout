@@ -20,6 +20,7 @@ export type CountryJobStats = components["schemas"]["CountryJobStats"];
 export type CountryVisaStats = components["schemas"]["CountryVisaStats"];
 export type CvSkills = components["schemas"]["CvSkills"];
 export type JobMatch = components["schemas"]["JobMatch"];
+export type ChatResponse = components["schemas"]["ChatResponse"];
 export type JobStatus = "open" | "closed" | "all";
 export type JobSource = JobListItem["source"];
 
@@ -138,4 +139,14 @@ export async function getMatches(
 /** Open jobs and the ones offering visa sponsorship, per country. */
 export function getVisaStats(): Promise<CountryVisaStats[]> {
   return get("/api/stats/visa-sponsorship");
+}
+
+/** Asks one question; `country` is the default when the question names none, `earlier` the recent questions of this chat. */
+export async function sendChat(message: string, country: string, earlier: string[]): Promise<ChatResponse> {
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, country, earlier }),
+  });
+  return parse<ChatResponse>(response);
 }

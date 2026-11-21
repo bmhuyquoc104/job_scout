@@ -6,6 +6,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from job_scout.categories.router import router as categories_router
+from job_scout.chat.router import router as chat_router
 from job_scout.core.exception_handlers import register_exception_handlers
 from job_scout.core.logging import configure_logging
 from job_scout.database import engine
@@ -27,6 +28,7 @@ app.include_router(categories_router, prefix="/api")
 app.include_router(jobs_router, prefix="/api")
 app.include_router(green_list_router, prefix="/api")
 app.include_router(matching_router, prefix="/api")
+app.include_router(chat_router, prefix="/api")
 
 
 def print_openapi() -> None:

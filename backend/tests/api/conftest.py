@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from job_scout.categories.models import Category
 from job_scout.database import get_session
@@ -17,9 +17,12 @@ async def api_context(
     async_test_database_url: str,
 ) -> AsyncIterator[tuple[AsyncClient, Category, list[Job]]]:
     engine = create_async_engine(async_test_database_url)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-    async with session_factory() as session:
-        transaction = await session.begin()
+    async with engine.connect() as connection:
+        outer = await connection.begin()
+        # A commit inside the app only releases a savepoint, so the rollback below undoes it all.
+        session = AsyncSession(
+            connection, join_transaction_mode="create_savepoint", expire_on_commit=False
+        )
         await session.execute(delete(Job))
         category = await session.scalar(select(Category).where(Category.slug == "ict"))
         assert category is not None
@@ -112,5 +115,6 @@ async def api_context(
                 yield client, category, jobs
         finally:
             app.dependency_overrides.clear()
-            await transaction.rollback()
+            await session.close()
+            await outer.rollback()
     await engine.dispose()

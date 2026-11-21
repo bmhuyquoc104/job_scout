@@ -342,3 +342,16 @@ async def test_visa_sponsorship_filters_and_sorts(
     assert _positions(offered) == ["Engineer 1"]
     assert _positions(not_mentioned) == ["Engineer 0", "Engineer 2"]
     assert _positions(offered_first)[0] == "Engineer 1"
+
+
+async def test_seniority_filter_keeps_only_the_selected_levels(
+    api_context: tuple[AsyncClient, Category, list[Job]],
+) -> None:
+    client, category, jobs = api_context
+
+    junior = await client.get(f"/api/categories/{category.id}/jobs?seniority=junior")
+    both = await client.get(f"/api/categories/{category.id}/jobs?seniority=junior&seniority=senior")
+
+    assert [item["id"] for item in junior.json()["items"]] == [str(jobs[1].id)]
+    assert junior.json()["total"] == 1
+    assert both.json()["total"] == 3

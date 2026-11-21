@@ -45,6 +45,8 @@ x-backend-common: &backend-common
     WATCHFILES_FORCE_POLLING: "true"
     DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
     DISCORD_MENTION_USER_ID: ${DISCORD_MENTION_USER_ID:-}
+    LLM_API_KEY: ${LLM_API_KEY:-}
+    LLM_MODEL: ${LLM_MODEL:-baidu/ernie-5.5-flash-preview:free}
   volumes:
     - ./backend/src:/app/src
     - ./backend/migrations:/app/migrations

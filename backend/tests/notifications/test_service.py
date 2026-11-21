@@ -21,17 +21,17 @@ ISO_END = datetime.fromtimestamp(END, UTC).isoformat()
 
 def test_success_embed_shows_counts_per_source() -> None:
     results = [
-        RunResult("job_scout_seek_daily", "success", new=42, closed=10),
-        RunResult("job_scout_employmenthero_daily", "success", new=5, closed=1),
+        RunResult("job_scout_seek_daily", "success", new=42, closed=10, visa=7),
+        RunResult("job_scout_employmenthero_daily", "success", new=5, closed=1, visa=2),
     ]
     payload = render_summary(results, START, END, mention_user_id="42")
     embed = payload["embeds"][0]
     assert payload["content"] == ""  # no ping when everything worked
     assert embed["title"] == "✅ Scrape finished: all 2 DAGs succeeded"
     assert embed["color"] == 0xA6E3A1
-    assert embed["description"].startswith("**+47 new · −11 closed**")
-    assert "employmenthero   +5     −1" in embed["description"]
-    assert "seek             +42    −10" in embed["description"]
+    assert embed["description"].startswith("**+47 new · 9 with visa · −11 closed**")
+    assert "employmenthero   +5     🛂2    −1" in embed["description"]
+    assert "seek             +42    🛂7    −10" in embed["description"]
     assert embed["footer"]["text"] == "2/2 DAGs ok · Duration 2h 41m"
     assert embed["timestamp"] == ISO_END
 

@@ -1,5 +1,6 @@
 import { Box, ThemeProvider, CssBaseline } from "@mui/material";
 import AppRoutes from "./routes";
+import ChatWidget from "./components/ChatWidget";
 import SideNav from "./components/SideNav";
 import CountryProvider from "./country/CountryProvider";
 import theme from "./theme";
@@ -29,6 +30,7 @@ export default function App() {
           <AppRoutes />
         </Box>
       </Box>
+      <ChatWidget />
       </CountryProvider>
     </ThemeProvider>
   );

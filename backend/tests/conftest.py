@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 from sqlalchemy.engine import make_url
 
+from job_scout.config import settings
+
 os.environ.setdefault("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", "/var/run/docker.sock")
 
 from testcontainers.community.postgres import PostgresContainer
@@ -43,3 +45,12 @@ def async_test_database_url(postgres_url: str) -> str:
 @pytest.fixture(scope="session")
 def sync_test_database_url(postgres_url: str) -> str:
     return make_url(postgres_url).set(drivername="postgresql").render_as_string(hide_password=False)
+
+
+@pytest.fixture(autouse=True)
+def no_real_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Whatever .env holds, no test can use the real chat model key; tests use a fake server."""
+    monkeypatch.setattr(settings, "llm_api_key", "")
+    monkeypatch.setattr(settings, "llm_model", "")
+    monkeypatch.setattr(settings, "llm_min_interval", 0)
+    monkeypatch.setattr(settings, "chat_vocab_ttl", 0)

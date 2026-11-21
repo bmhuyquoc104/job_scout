@@ -299,6 +299,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Chat */
+        post: operations["chat_api_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -354,6 +371,26 @@ export interface components {
             total_open: number;
             /** Sponsored */
             sponsored: number;
+        };
+        /** ChatRequest */
+        ChatRequest: {
+            /** Message */
+            message: string;
+            /** Country */
+            country?: string | null;
+            /** Earlier */
+            earlier?: string[];
+        };
+        /** ChatResponse */
+        ChatResponse: {
+            /** Reply */
+            reply: string;
+            /** Understood */
+            understood: string[];
+            /** Jobs */
+            jobs: components["schemas"]["JobListItem"][];
+            /** More Url */
+            more_url?: string | null;
         };
         /** CountryJobStats */
         CountryJobStats: {
@@ -533,7 +570,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow";
+            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow" | "iamexpat";
             /** External Id */
             external_id: string;
             /** Company Name */
@@ -594,7 +631,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow";
+            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow" | "iamexpat";
             /** Position */
             position: string;
             /** Company Name */
@@ -739,7 +776,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow";
+            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow" | "iamexpat";
             /** Count */
             count: number;
         };
@@ -749,7 +786,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow";
+            source: "seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow" | "iamexpat";
             /** Label */
             label: string;
         };
@@ -831,7 +868,7 @@ export interface operations {
                 limit?: number;
                 offset?: number;
                 status?: "open" | "closed" | "all";
-                source?: ("seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow") | null;
+                source?: ("seek" | "employmenthero" | "indeed" | "glassdoor" | "jobbank" | "arbeitnow" | "iamexpat") | null;
                 sort?: "position" | "company" | "location" | "arrangement" | "work_type" | "status" | "salary" | "listed" | "source" | "visa";
                 order?: "asc" | "desc";
                 position?: string | null;
@@ -839,6 +876,7 @@ export interface operations {
                 location?: string | null;
                 arrangement?: string[];
                 work_type?: string[];
+                seniority?: string[];
                 salary?: "any" | "listed" | "unlisted";
                 visa?: "any" | "offered" | "not_mentioned";
                 min_salary?: number | null;
@@ -1299,6 +1337,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobMatch"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chat_api_chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatResponse"];
                 };
             };
             /** @description Validation Error */

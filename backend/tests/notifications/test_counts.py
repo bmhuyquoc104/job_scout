@@ -24,7 +24,7 @@ async def db(async_test_database_url: str) -> AsyncIterator[async_sessionmaker[A
         assert category is not None
         for external_id, source, event, when in [
             ("a", "seek", "new", SINCE + timedelta(minutes=5)),
-            ("b", "seek", "new", SINCE + timedelta(minutes=6)),
+            ("b", "seek", "new", SINCE + timedelta(minutes=6)),  # sponsors a visa
             ("c", "seek", "closed", SINCE + timedelta(minutes=7)),
             ("d", "seek", "new", SINCE - timedelta(hours=1)),  # before this run
             ("e", "indeed", "updated", SINCE + timedelta(minutes=8)),  # not counted
@@ -32,6 +32,7 @@ async def db(async_test_database_url: str) -> AsyncIterator[async_sessionmaker[A
         ]:
             job = make_job(category.id, external_id)
             job.source = source
+            job.visa_sponsor = external_id == "b"
             session.add(job)
             await session.flush()
             session.add(
@@ -51,7 +52,7 @@ async def db(async_test_database_url: str) -> AsyncIterator[async_sessionmaker[A
 async def test_event_counts_are_per_source_since_the_run_started(
     db: async_sessionmaker[AsyncSession],
 ) -> None:
-    assert await event_counts(SINCE, db) == {"seek": (2, 1), "indeed": (1, 0)}
+    assert await event_counts(SINCE, db) == {"seek": (2, 1, 1), "indeed": (1, 0, 0)}
 
 
 async def test_run_results_attach_counts_to_each_dag(
@@ -60,7 +61,7 @@ async def test_run_results_attach_counts_to_each_dag(
     results = await run_results(
         ["job_scout_seek_daily", "job_scout_iamexpat_daily"], int(SINCE.timestamp()), db
     )
-    assert [(r.dag, r.state, r.new, r.closed) for r in results] == [
-        ("job_scout_seek_daily", "success", 2, 1),
-        ("job_scout_iamexpat_daily", "success", 0, 0),
+    assert [(r.dag, r.state, r.new, r.closed, r.visa) for r in results] == [
+        ("job_scout_seek_daily", "success", 2, 1, 1),
+        ("job_scout_iamexpat_daily", "success", 0, 0, 0),
     ]

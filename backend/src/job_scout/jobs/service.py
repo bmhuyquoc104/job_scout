@@ -78,6 +78,8 @@ def _filters(category_id: UUID, query: JobQuery) -> list[ColumnElement[bool]]:
         filters.append(Job.work_arrangements.has_any(array(query.arrangement)))
     if query.work_type:
         filters.append(Job.work_types.has_any(array(query.work_type)))
+    if query.seniority:
+        filters.append(Job.seniority.in_(query.seniority))
     has_salary = or_(Job.annual_salary_min.is_not(None), Job.annual_salary_max.is_not(None))
     if query.visa != "any":
         filters.append(Job.visa_sponsor.is_(query.visa == "offered"))

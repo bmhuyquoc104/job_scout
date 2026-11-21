@@ -40,6 +40,7 @@ class JobQuery(BaseModel):
     # A job matches if it has ANY of the selected values.
     arrangement: list[str] = Field(default_factory=list, max_length=10)
     work_type: list[str] = Field(default_factory=list, max_length=10)
+    seniority: list[str] = Field(default_factory=list, max_length=10)
     salary: Literal["any", "listed", "unlisted"] = "any"
     visa: Literal["any", "offered", "not_mentioned"] = "any"
     # Minimum estimated annual NZD: the top of the job's range must reach it.
