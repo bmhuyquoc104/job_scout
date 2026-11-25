@@ -124,3 +124,29 @@ async def test_pages_read_every_list_page_then_each_new_job(
 def test_it_only_covers_the_netherlands() -> None:
     with pytest.raises(AppError):
         iamexpat.client("DE")
+
+
+async def test_a_listed_job_whose_page_has_no_posting_is_skipped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    lists = {"": card("a", "idA00000001") + card("gone", "idG00000002"), "?page=2": ""}
+    jobs = {
+        f"{SECTION}/a/idA00000001": job_page(posting("a")),
+        f"{SECTION}/gone/idG00000002": job_page(None),  # taken down, the list still links it
+    }
+
+    async def fake_request(_: object, __: str, url: str, **___: object) -> SimpleNamespace:
+        path = url.removeprefix("https://www.iamexpat.nl")
+        if path.startswith(SECTION + "?page=") or path == SECTION:
+            return SimpleNamespace(text=lists[path.removeprefix(SECTION)])
+        return SimpleNamespace(text=jobs[path])
+
+    async def no_sleep(_: float) -> None:
+        return None
+
+    monkeypatch.setattr(iamexpat.chrome_http, "request", fake_request)
+    monkeypatch.setattr(iamexpat.asyncio, "sleep", no_sleep)
+
+    collected = [p["id"] async for page in iamexpat.pages(object(), "NL") for p in page]  # type: ignore[arg-type]
+
+    assert collected == ["idA00000001"]

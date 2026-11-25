@@ -87,7 +87,12 @@ async def pages(http: AsyncSession, country: str = "NL") -> AsyncIterator[list[d
         jobs = []
         for href in hrefs:
             detail = await chrome_http.request(http, "GET", f"{BASE}{href}")
-            jobs.append(parse_job_page(detail.text, href))
+            try:
+                jobs.append(parse_job_page(detail.text, href))
+            except AppError as exc:
+                # The list can still link a job that was just taken down; one dead page must
+                # not stop the whole scrape.
+                logger.warning("Skipping IamExpat job: %s", exc)
             await asyncio.sleep(DETAIL_DELAY)
         yield jobs
     raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, f"Exceeded {MAX_PAGES} IamExpat pages")
