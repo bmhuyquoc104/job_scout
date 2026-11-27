@@ -73,7 +73,7 @@ def parse_description(page: str) -> str:
 def client(country: str = "CA") -> AsyncSession:
     if country != "CA":
         raise AppError(ErrorCode.SCRAPE_SOURCE_ERROR, "Job Bank only covers Canada")
-    return chrome_http.client()
+    return chrome_http.client(timeout=60)  # its detail pages are slow
 
 
 async def _add_description(

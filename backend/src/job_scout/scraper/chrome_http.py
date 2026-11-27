@@ -10,8 +10,8 @@ from job_scout.core.errors import AppError, ErrorCode
 MAX_ATTEMPTS = 3
 
 
-def client(headers: dict[str, str] | None = None) -> AsyncSession:
-    return AsyncSession(impersonate="chrome", timeout=30, headers=headers)
+def client(headers: dict[str, str] | None = None, timeout: float = 30) -> AsyncSession:
+    return AsyncSession(impersonate="chrome", timeout=timeout, headers=headers)
 
 
 async def request(http: AsyncSession, method: str, url: str, **kwargs: Any) -> Response:

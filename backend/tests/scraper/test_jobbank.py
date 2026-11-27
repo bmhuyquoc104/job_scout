@@ -90,3 +90,7 @@ def test_a_job_with_no_description_still_gets_a_pointer_to_the_original_listing(
         "Job Bank has no description for this job; see the original listing: "
         "https://www.jobbank.gc.ca/jobsearch/jobposting/9"
     )
+
+
+def test_job_bank_waits_longer_than_the_default_for_slow_pages() -> None:
+    assert jobbank.client("CA").timeout == 60
