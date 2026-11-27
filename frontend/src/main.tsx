@@ -4,15 +4,20 @@ import { BrowserRouter } from "react-router-dom";
 import { loadSources } from "./api/client";
 import App from "./App";
 
-// The job-source list comes from the backend; if it can't be loaded the app still renders (ids as names).
-loadSources()
-  .catch(() => undefined)
-  .then(() =>
-    ReactDOM.createRoot(document.getElementById("root")!).render(
-      <React.StrictMode>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </React.StrictMode>,
-    ),
+const root = ReactDOM.createRoot(document.getElementById("root")!);
+const show = (key: number) =>
+  root.render(
+    <React.StrictMode>
+      <BrowserRouter key={key}>
+        <App />
+      </BrowserRouter>
+    </React.StrictMode>,
   );
+
+// Render at once: the host may be asleep, and the first API call can take a minute. The job-source
+// names arrive later and the app is shown again with them; if they can't be loaded, ids are shown.
+// shortcut: the second render remounts the app (state resets), fine since it lands before any input.
+show(0);
+loadSources()
+  .then(() => show(1))
+  .catch(() => undefined);
