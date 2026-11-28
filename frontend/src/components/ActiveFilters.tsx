@@ -16,7 +16,7 @@ export default function ActiveFilters() {
   if (active.length === 0) return null;
 
   return (
-    <Stack direction="row" flexWrap="wrap" alignItems="center" gap={1} role="list" aria-label="Active filters" sx={{ mb: 1.5 }}>
+    <Stack direction="row" alignItems="center" gap={1} role="list" aria-label="Active filters" sx={{ flexWrap: "wrap", mb: 1.5 }}>
       {active.map((field) => (
         <Chip
           key={field}
